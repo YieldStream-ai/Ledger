@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars and fill in your values
+aws_region          = "us-west-2"
+google_ai_api_key   = ""
+llama_cloud_api_key = ""
