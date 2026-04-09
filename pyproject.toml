@@ -1,0 +1,31 @@
+[project]
+name = "yieldstream-qualify"
+version = "0.1.0"
+description = "Standalone document parsing and financial intelligence API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pdfplumber>=0.11",
+    "pymupdf>=1.24",
+    "pytesseract>=0.3",
+    "pdf2image>=1.17",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+    "google-generativeai>=0.8",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "reportlab>=4.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
