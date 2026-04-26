@@ -115,6 +115,27 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </div>
       )}
 
+      {/* Arithmetic Validation */}
+      {result.validation && result.validation.balance_check === "failed" && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Balance Discrepancy Detected</p>
+            <p className="text-sm mt-1">
+              Expected ending balance: ${result.validation.expected_ending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {" | "}Actual: ${result.validation.actual_ending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {" | "}Discrepancy: ${result.validation.discrepancy.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
+      )}
+      {result.validation && result.validation.balance_check === "passed" && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-green-50 text-green-700">
+          <CheckCircle2 className="w-4 h-4" />
+          Balance cross-check passed (confidence: {Math.round(result.validation.confidence * 100)}%)
+        </div>
+      )}
+
       {/* Confidence Scores */}
       {result.confidence && (
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">

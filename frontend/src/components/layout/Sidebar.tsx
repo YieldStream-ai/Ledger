@@ -1,4 +1,4 @@
-import { FileText, ScanSearch, FileCheck, BarChart3 } from "lucide-react";
+import { FileText, ScanSearch, FileCheck, BarChart3, ClipboardList } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
@@ -6,6 +6,7 @@ const navItems = [
   { id: "classify", label: "Classify", icon: ScanSearch },
   { id: "approval", label: "Approval", icon: FileCheck },
   { id: "enrich", label: "Enrich", icon: BarChart3 },
+  { id: "review", label: "Needs Review", icon: ClipboardList },
 ];
 
 interface SidebarProps {

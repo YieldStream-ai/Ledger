@@ -85,6 +85,7 @@ async def parse_document(request: ParseRequest):
         request.document_type_hint,
         start,
         include_enrichment=request.include_enrichment,
+        cross_check_balances=request.cross_check_balances,
         business_name=request.business_name,
         industry=request.industry,
     )
@@ -95,6 +96,7 @@ async def parse_upload(
     file: UploadFile = File(...),
     document_type_hint: str | None = Form(None),
     include_enrichment: bool = Form(False),
+    cross_check_balances: bool = Form(True),
     business_name: str | None = Form(None),
     industry: str | None = Form(None),
 ):
@@ -107,6 +109,7 @@ async def parse_upload(
         document_type_hint,
         start,
         include_enrichment=include_enrichment,
+        cross_check_balances=cross_check_balances,
         business_name=business_name,
         industry=industry,
     )
@@ -119,6 +122,7 @@ def _process_pdf(
     start: float,
     *,
     include_enrichment: bool = False,
+    cross_check_balances: bool = True,
     business_name: str | None = None,
     industry: str | None = None,
 ) -> ParseResponse:
@@ -342,6 +346,27 @@ def _process_pdf(
                 has_template=template_used != "generic",
             )
 
+        # Arithmetic validation (post-processing, not inside LLM call)
+        validation_result = None
+        if cross_check_balances and classification.document_type == "bank_statement" and parsed_data:
+            from app.validation.arithmetic import validate_arithmetic
+            validation_obj = validate_arithmetic(parsed_data)
+            validation_result = validation_obj.model_dump()
+            if validation_obj.balance_check == "failed":
+                import uuid
+                from datetime import datetime, timezone
+                from app.validation.review_queue import add_to_review, ReviewItem
+                add_to_review(ReviewItem(
+                    id=str(uuid.uuid4()),
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    file_name=file_name,
+                    bank_detected=bank_detected,
+                    discrepancy=validation_obj.discrepancy,
+                    expected_ending=validation_obj.expected_ending,
+                    actual_ending=validation_obj.actual_ending,
+                    parsed_data_snapshot=parsed_data,
+                ))
+
         # Optional AI enrichment
         enrichment_data = None
         if include_enrichment and classification.document_type == "bank_statement" and extraction.text:
@@ -377,6 +402,7 @@ def _process_pdf(
             bank_profile_sample=bank_profile_sample,
             quality=quality_response,
             enrichment=enrichment_data,
+            validation=validation_result,
         )
 
     finally:

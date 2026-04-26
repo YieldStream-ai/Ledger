@@ -56,6 +56,25 @@ export interface QualityResult {
   recommendation: string | null;
 }
 
+export interface ArithmeticValidation {
+  balance_check: "passed" | "failed" | "skipped";
+  expected_ending: number;
+  actual_ending: number;
+  discrepancy: number;
+  confidence: number;
+}
+
+export interface ReviewItem {
+  id: string;
+  timestamp: string;
+  file_name: string;
+  bank_detected: string | null;
+  discrepancy: number;
+  expected_ending: number;
+  actual_ending: number;
+  parsed_data_snapshot: Record<string, unknown>;
+}
+
 export interface ParseResponse {
   status: "success" | "error";
   extraction_method: string | null;
@@ -71,11 +90,13 @@ export interface ParseResponse {
   metadata: ParseMetadata | null;
   quality: QualityResult | null;
   enrichment: Record<string, unknown> | null;
+  validation: ArithmeticValidation | null;
 }
 
 export interface ParseConfig {
   documentTypeHint: string;
   includeEnrichment: boolean;
+  crossCheckBalances: boolean;
   businessName: string;
   industry: string;
 }

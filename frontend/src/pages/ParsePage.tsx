@@ -6,6 +6,7 @@ import { ConfigPanel } from "../components/config/ConfigPanel";
 import { ResultsPanel } from "../components/results/ResultsPanel";
 import { useHealthCheck } from "../hooks/useHealthCheck";
 import { parseUpload } from "../api/client";
+import { ReviewPage } from "./ReviewPage";
 import type { FileEntry, ParseConfig } from "../api/types";
 
 let nextId = 1;
@@ -19,6 +20,7 @@ export function ParsePage() {
   const [config, setConfig] = useState<ParseConfig>({
     documentTypeHint: "",
     includeEnrichment: false,
+    crossCheckBalances: true,
     businessName: "",
     industry: "",
   });
@@ -113,43 +115,47 @@ export function ParsePage() {
         />
       }
     >
-      <div className="flex flex-col h-full overflow-hidden">
-        <FileList
-          files={files}
-          activeFileId={activeFileId}
-          onSelect={setActiveFileId}
-          onRemove={handleRemove}
-        />
+      {activePage === "review" ? (
+        <ReviewPage />
+      ) : (
+        <div className="flex flex-col h-full overflow-hidden">
+          <FileList
+            files={files}
+            activeFileId={activeFileId}
+            onSelect={setActiveFileId}
+            onRemove={handleRemove}
+          />
 
-        {activeFile?.result ? (
-          <div className="flex-1 overflow-auto">
-            <ResultsPanel result={activeFile.result} />
-          </div>
-        ) : activeFile?.status === "error" ? (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="bg-red-50 text-red-700 rounded-lg p-4 max-w-md text-sm">
-              <p className="font-medium">Parse failed</p>
-              <p className="mt-1">{activeFile.error}</p>
+          {activeFile?.result ? (
+            <div className="flex-1 overflow-auto">
+              <ResultsPanel result={activeFile.result} />
             </div>
-          </div>
-        ) : activeFile?.status === "uploading" ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-gray-600 mt-4">
-                Parsing {activeFile.file.name}...
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Upload: {activeFile.progress}%
-              </p>
+          ) : activeFile?.status === "error" ? (
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="bg-red-50 text-red-700 rounded-lg p-4 max-w-md text-sm">
+                <p className="font-medium">Parse failed</p>
+                <p className="mt-1">{activeFile.error}</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0 flex p-6">
-            <DropZone onFilesAdded={handleFilesAdded} />
-          </div>
-        )}
-      </div>
+          ) : activeFile?.status === "uploading" ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+                <p className="text-sm text-gray-600 mt-4">
+                  Parsing {activeFile.file.name}...
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Upload: {activeFile.progress}%
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 flex p-6">
+              <DropZone onFilesAdded={handleFilesAdded} />
+            </div>
+          )}
+        </div>
+      )}
     </AppLayout>
   );
 }

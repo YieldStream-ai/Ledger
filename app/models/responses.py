@@ -92,6 +92,7 @@ class ParseResponse(BaseModel):
     bank_profile_sample: BankProfileSample | None = None
     quality: QualityResult | None = None
     enrichment: dict | None = None  # BankIntelligenceResult when include_enrichment=True
+    validation: dict | None = None  # ArithmeticValidation result when cross_check_balances=True
 
 
 class ClassifyResponse(BaseModel):

@@ -57,6 +57,23 @@ export function ConfigPanel({
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
+              checked={config.crossCheckBalances}
+              onChange={(e) =>
+                onChange({ ...config, crossCheckBalances: e.target.checked })
+              }
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Cross-check balances</span>
+          </label>
+          <p className="text-xs text-gray-500 mt-1 ml-6">
+            Verify beginning + credits − debits = ending balance
+          </p>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
               checked={config.includeEnrichment}
               onChange={(e) =>
                 onChange({ ...config, includeEnrichment: e.target.checked })

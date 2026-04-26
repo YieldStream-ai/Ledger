@@ -13,6 +13,7 @@ export default defineConfig({
       '/classify': apiTarget,
       '/health': apiTarget,
       '/extract-approval': apiTarget,
+      '/review': apiTarget,
       '/v1': apiTarget,
     },
   },

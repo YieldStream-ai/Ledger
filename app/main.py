@@ -6,6 +6,7 @@ from app.routes.parse import router as parse_router
 from app.routes.classify import router as classify_router
 from app.routes.approval import router as approval_router
 from app.routes.enrich import router as enrich_router
+from app.routes.review import router as review_router
 
 app = FastAPI(
     title="YieldStream Qualify",
@@ -25,3 +26,4 @@ app.include_router(parse_router)
 app.include_router(classify_router)
 app.include_router(approval_router)
 app.include_router(enrich_router)
+app.include_router(review_router)
