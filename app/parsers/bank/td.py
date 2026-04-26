@@ -16,6 +16,13 @@ from app.utils.dates import find_date_range
 class TDTemplate(BankTemplate):
     bank_name = "TD Bank"
     template_id = "td"
+    match_signal_defs = [
+        ("header_text", "TD BANK / TD BUSINESS identifier"),
+        ("domain", "tdbank.com domain reference"),
+        ("account_type", "TD Business Convenience / Premier product name"),
+        ("section_header", "Other Credits / Other Debits section"),
+        ("section_header", "Minimum Balance label"),
+    ]
 
     _generic = GenericBankParser()
 

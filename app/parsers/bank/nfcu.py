@@ -15,6 +15,13 @@ from app.utils.dates import parse_date
 class NFCUTemplate(BankTemplate):
     bank_name = "Navy Federal Credit Union"
     template_id = "nfcu"
+    match_signal_defs = [
+        ("header_text", "NAVY FEDERAL identifier"),
+        ("domain", "navyfederal.org domain reference"),
+        ("account_type", "e-Checking account type"),
+        ("header_text", "NCUA / Insured by NCUA label"),
+        ("section_header", "Access No. field"),
+    ]
 
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         score = 0.0

@@ -16,6 +16,13 @@ from app.utils.dates import find_date_range
 class PNCTemplate(BankTemplate):
     bank_name = "PNC"
     template_id = "pnc"
+    match_signal_defs = [
+        ("header_text", "PNC BANK / PNC BUSINESS identifier"),
+        ("domain", "pnc.com domain reference"),
+        ("account_type", "Business Checking with PNC label"),
+        ("section_header", "Deposit and Credit Summary section"),
+        ("section_header", "Withdrawal and Debit Summary section"),
+    ]
 
     _generic = GenericBankParser()
 

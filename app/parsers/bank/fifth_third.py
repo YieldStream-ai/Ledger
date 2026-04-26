@@ -16,6 +16,12 @@ from app.utils.dates import find_date_range
 class FifthThirdTemplate(BankTemplate):
     bank_name = "Fifth Third Bank"
     template_id = "fifth_third"
+    match_signal_defs = [
+        ("header_text", "FIFTH THIRD identifier"),
+        ("domain", "53.com / fifththird.com domain reference"),
+        ("account_type", "Business Checking with Fifth Third label"),
+        ("header_text", "5/3 shorthand identifier"),
+    ]
 
     _generic = GenericBankParser()
 

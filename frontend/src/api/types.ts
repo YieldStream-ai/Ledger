@@ -75,6 +75,34 @@ export interface ReviewItem {
   parsed_data_snapshot: Record<string, unknown>;
 }
 
+export interface TemplateMatchSignal {
+  category: string;
+  description: string;
+}
+
+export interface TemplateMatchAlternative {
+  id: string;
+  bank_name: string;
+  confidence: number;
+}
+
+export interface TemplateMatchResult {
+  id: string;
+  bank_name: string;
+  confidence: number;
+  fallback_used: boolean;
+  signals: TemplateMatchSignal[];
+  alternatives: TemplateMatchAlternative[];
+}
+
+export interface TemplateDetail {
+  id: string;
+  bank_name: string;
+  signal_count: number;
+  signals: TemplateMatchSignal[];
+  match_count_30d: number;
+}
+
 export interface ParseResponse {
   status: "success" | "error";
   extraction_method: string | null;
@@ -91,6 +119,7 @@ export interface ParseResponse {
   quality: QualityResult | null;
   enrichment: Record<string, unknown> | null;
   validation: ArithmeticValidation | null;
+  template_match: TemplateMatchResult | null;
 }
 
 export interface ParseConfig {

@@ -16,6 +16,12 @@ from app.utils.dates import find_date_range
 class TruistTemplate(BankTemplate):
     bank_name = "Truist"
     template_id = "truist"
+    match_signal_defs = [
+        ("header_text", "TRUIST identifier"),
+        ("domain", "truist.com domain reference"),
+        ("header_text", "BB&T / SUNTRUST legacy identifier"),
+        ("account_type", "Business Checking with Truist / BB&T / SunTrust label"),
+    ]
 
     _generic = GenericBankParser()
 

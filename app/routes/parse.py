@@ -223,6 +223,7 @@ def _process_pdf(
         template_used: str | None = None
         gemini_extraction_used = False
         gemini_extraction_result: dict | None = None
+        template_match_detail: dict | None = None
         expected_fields: list[str] = []
 
         if classification.document_type == "bank_statement":
@@ -233,6 +234,7 @@ def _process_pdf(
                 template_used,
                 gemini_extraction_used,
                 gemini_extraction_result,
+                template_match_detail,
             ) = _parse_bank_statement(extraction.text, extraction.tables)
             expected_fields = _BANK_STATEMENT_FIELDS
         elif classification.document_type in ("business_tax_return",):
@@ -403,6 +405,7 @@ def _process_pdf(
             quality=quality_response,
             enrichment=enrichment_data,
             validation=validation_result,
+            template_match=template_match_detail,
         )
 
     finally:
@@ -411,12 +414,12 @@ def _process_pdf(
 
 def _parse_bank_statement(
     text: str, tables: list
-) -> tuple[dict, float, str | None, str | None, bool, dict | None]:
+) -> tuple[dict, float, str | None, str | None, bool, dict | None, dict | None]:
     """Parse bank statement using template registry.
 
-    Returns (parsed_data, confidence, bank_detected, template_used, gemini_used, gemini_result).
+    Returns (parsed_data, confidence, bank_detected, template_used, gemini_used, gemini_result, template_match_detail).
     """
-    template, match_confidence = TemplateRegistry.match(text, tables)
+    template, match_confidence, template_match_detail = TemplateRegistry.match_detailed(text, tables)
 
     summary = template.extract_summary(text, tables)
     transactions = template.extract_transactions(text, tables)
@@ -501,6 +504,7 @@ def _parse_bank_statement(
         template_used_id,
         gemini_used,
         gemini_result,
+        template_match_detail,
     )
 
 

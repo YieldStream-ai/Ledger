@@ -15,6 +15,13 @@ from app.utils.dates import find_date_range, parse_date
 class WellsFargoTemplate(BankTemplate):
     bank_name = "Wells Fargo"
     template_id = "wells_fargo"
+    match_signal_defs = [
+        ("header_text", "WELLS FARGO identifier"),
+        ("domain", "wellsfargo.com domain reference"),
+        ("account_type", "Business Choice Checking product name"),
+        ("section_header", "Transaction history section"),
+        ("section_header", "Ending day balance / Daily balance section"),
+    ]
 
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         score = 0.0

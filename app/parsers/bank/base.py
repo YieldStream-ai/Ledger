@@ -34,6 +34,10 @@ class BankTemplate(ABC):
     bank_name: str
     template_id: str
 
+    # Subclasses should override with list of signal descriptions checked by matches().
+    # Each entry is a (label, description) tuple, e.g. ("header_text", "JPMORGAN CHASE BANK").
+    match_signal_defs: list[tuple[str, str]] = []
+
     @abstractmethod
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         """Return confidence 0-1 that this template matches the document."""

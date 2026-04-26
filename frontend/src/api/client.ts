@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { ParseConfig, ParseResponse, ReviewItem } from "./types";
+import type { ParseConfig, ParseResponse, ReviewItem, TemplateDetail } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -46,6 +46,11 @@ export async function clearReviewQueue(): Promise<void> {
 
 export async function removeReviewItem(id: string): Promise<void> {
   await api.delete(`/review/queue/${id}`);
+}
+
+export async function getBankTemplates(): Promise<TemplateDetail[]> {
+  const res = await api.get<TemplateDetail[]>("/templates/bank");
+  return res.data;
 }
 
 export async function healthCheck(): Promise<boolean> {

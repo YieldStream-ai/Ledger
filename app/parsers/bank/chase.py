@@ -15,6 +15,15 @@ from app.utils.dates import find_date_range, parse_date
 class ChaseTemplate(BankTemplate):
     bank_name = "Chase"
     template_id = "chase"
+    match_signal_defs = [
+        ("header_text", "JPMORGAN CHASE BANK identifier"),
+        ("domain", "chase.com domain reference"),
+        ("section_header", "Deposits and Additions section"),
+        ("section_header", "Checks and Other Withdrawals section"),
+        ("section_header", "CHECKING SUMMARY header"),
+        ("column_layout", "ATM & Debit Card Withdrawals section"),
+        ("account_type", "CHASE TOTAL/BUSINESS CHECKING label"),
+    ]
 
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         score = 0.0

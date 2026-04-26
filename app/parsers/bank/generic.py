@@ -14,6 +14,7 @@ from app.utils.dates import find_date_range, parse_date
 class GenericBankParser(BankTemplate):
     bank_name = "Unknown"
     template_id = "generic"
+    match_signal_defs = []
 
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         # Generic always matches at 0.0 — only used as fallback

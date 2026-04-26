@@ -16,6 +16,11 @@ from app.utils.dates import find_date_range
 class BMOHarrisTemplate(BankTemplate):
     bank_name = "BMO Harris"
     template_id = "bmo_harris"
+    match_signal_defs = [
+        ("header_text", "BMO HARRIS / BMO BANK identifier"),
+        ("domain", "bmoharris.com / bmo.com domain reference"),
+        ("account_type", "Business Checking with BMO label"),
+    ]
 
     _generic = GenericBankParser()
 

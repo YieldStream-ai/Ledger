@@ -15,6 +15,13 @@ from app.utils.dates import find_date_range, parse_date
 class BofATemplate(BankTemplate):
     bank_name = "Bank of America"
     template_id = "bofa"
+    match_signal_defs = [
+        ("header_text", "BANK OF AMERICA identifier"),
+        ("domain", "bankofamerica.com / bofa.com reference"),
+        ("account_type", "Business Advantage product name"),
+        ("section_header", "Deposits and Other Credits section"),
+        ("section_header", "Checks and Substitute Checks section"),
+    ]
 
     def matches(self, text: str, tables: list[ExtractedTable]) -> float:
         score = 0.0

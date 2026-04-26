@@ -16,6 +16,12 @@ from app.utils.dates import find_date_range
 class RegionsTemplate(BankTemplate):
     bank_name = "Regions"
     template_id = "regions"
+    match_signal_defs = [
+        ("header_text", "REGIONS BANK / REGIONS FINANCIAL identifier"),
+        ("domain", "regions.com domain reference"),
+        ("account_type", "Business Checking with Regions label"),
+        ("account_type", "LifeGreen product name"),
+    ]
 
     _generic = GenericBankParser()
 

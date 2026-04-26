@@ -14,6 +14,7 @@ export default defineConfig({
       '/health': apiTarget,
       '/extract-approval': apiTarget,
       '/review': apiTarget,
+      '/templates': apiTarget,
       '/v1': apiTarget,
     },
   },

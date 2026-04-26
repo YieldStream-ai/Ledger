@@ -7,6 +7,7 @@ import { ResultsPanel } from "../components/results/ResultsPanel";
 import { useHealthCheck } from "../hooks/useHealthCheck";
 import { parseUpload } from "../api/client";
 import { ReviewPage } from "./ReviewPage";
+import { TemplatesPage } from "./TemplatesPage";
 import type { FileEntry, ParseConfig } from "../api/types";
 
 let nextId = 1;
@@ -117,6 +118,8 @@ export function ParsePage() {
     >
       {activePage === "review" ? (
         <ReviewPage />
+      ) : activePage === "templates" ? (
+        <TemplatesPage />
       ) : (
         <div className="flex flex-col h-full overflow-hidden">
           <FileList

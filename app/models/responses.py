@@ -93,6 +93,7 @@ class ParseResponse(BaseModel):
     quality: QualityResult | None = None
     enrichment: dict | None = None  # BankIntelligenceResult when include_enrichment=True
     validation: dict | None = None  # ArithmeticValidation result when cross_check_balances=True
+    template_match: dict | None = None  # TemplateMatchResult with id, confidence, signals, alternatives
 
 
 class ClassifyResponse(BaseModel):

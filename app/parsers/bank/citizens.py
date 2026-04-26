@@ -16,6 +16,11 @@ from app.utils.dates import find_date_range
 class CitizensTemplate(BankTemplate):
     bank_name = "Citizens Bank"
     template_id = "citizens"
+    match_signal_defs = [
+        ("header_text", "CITIZENS BANK / CITIZENS FINANCIAL identifier"),
+        ("domain", "citizensbank.com domain reference"),
+        ("account_type", "Business Checking with Citizens label"),
+    ]
 
     _generic = GenericBankParser()
 

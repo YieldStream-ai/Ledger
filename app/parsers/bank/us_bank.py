@@ -15,6 +15,14 @@ from app.utils.dates import parse_date
 class USBankTemplate(BankTemplate):
     bank_name = "US Bank"
     template_id = "us_bank"
+    match_signal_defs = [
+        ("header_text", "U.S. BANK / US BANK identifier"),
+        ("domain", "usbank.com domain reference"),
+        ("account_type", "Silver / Gold / Platinum Business product name"),
+        ("account_type", "Uni-Statement consumer format label"),
+        ("account_type", "STUDENT CHECKING / CHECKING account type"),
+        ("section_header", "TRANSACTION DETAIL section header"),
+    ]
     _stmt_year: str = "2026"  # updated during extract_summary
     _raw_text: str = ""  # stored for compute_derived_metrics
 

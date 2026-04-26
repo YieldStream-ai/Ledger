@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { clsx } from "clsx";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import type { ParseResponse } from "../../api/types";
+import type { ParseResponse, TemplateMatchResult } from "../../api/types";
 
 interface SummaryTabProps {
   result: ParseResponse;
@@ -59,6 +60,77 @@ const DISPLAY_FIELDS = [
   { key: "average_daily_balance", label: "Average Daily Balance", prefix: "$" },
 ];
 
+function TemplateMatchBadge({ match }: { match: TemplateMatchResult }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const pct = Math.round(match.confidence * 100);
+  const isLowConfidence = match.fallback_used || match.confidence < 0.7;
+
+  const label = isLowConfidence
+    ? `Generic Parser \u00b7 Reduced Accuracy`
+    : `Matched: ${match.bank_name} \u00b7 ${pct}%`;
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span
+        className={clsx(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-default",
+          isLowConfidence
+            ? "bg-amber-100 text-amber-700"
+            : "bg-purple-100 text-purple-700"
+        )}
+      >
+        {label}
+      </span>
+
+      {showTooltip && (
+        <div className="absolute z-50 top-full left-0 mt-2 w-72 bg-gray-900 text-gray-100 rounded-lg shadow-xl p-3 text-xs">
+          <p className="font-medium mb-2">
+            Template: {match.id} ({pct}% confidence)
+          </p>
+
+          {match.signals.length > 0 && (
+            <div className="mb-2">
+              <p className="text-gray-400 mb-1">Signals matched:</p>
+              <ul className="space-y-0.5">
+                {match.signals.map((s, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-gray-500 shrink-0">{s.category}</span>
+                    <span>{s.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {match.alternatives.length > 0 && (
+            <div>
+              <p className="text-gray-400 mb-1">Alternatives considered:</p>
+              <ul className="space-y-0.5">
+                {match.alternatives.map((a) => (
+                  <li key={a.id} className="flex justify-between">
+                    <span>{a.bank_name}</span>
+                    <span className="text-gray-400">{Math.round(a.confidence * 100)}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {match.fallback_used && (
+            <p className="mt-2 text-amber-400">
+              No template matched above 70% confidence. Using generic parser with reduced accuracy.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SummaryTab({ result }: SummaryTabProps) {
   const data = result.parsed_data;
 
@@ -91,6 +163,11 @@ export function SummaryTab({ result }: SummaryTabProps) {
             </span>
           )}
         </div>
+      )}
+
+      {/* Template Match Badge */}
+      {result.template_match && (
+        <TemplateMatchBadge match={result.template_match} />
       )}
 
       {/* Quality Gate */}

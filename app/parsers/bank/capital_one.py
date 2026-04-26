@@ -16,6 +16,12 @@ from app.utils.dates import find_date_range
 class CapitalOneTemplate(BankTemplate):
     bank_name = "Capital One"
     template_id = "capital_one"
+    match_signal_defs = [
+        ("header_text", "CAPITAL ONE identifier"),
+        ("domain", "capitalone.com domain reference"),
+        ("account_type", "Spark Business product name"),
+        ("account_type", "Basic Checking with Capital One label"),
+    ]
 
     _generic = GenericBankParser()
 
