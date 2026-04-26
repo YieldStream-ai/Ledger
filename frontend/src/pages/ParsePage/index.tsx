@@ -124,6 +124,7 @@ export function ParsePage() {
             onRunParse={handleRunParse}
             isRunning={isRunning}
             hasFiles={hasQueuedFiles}
+            fileCount={files.length}
           />
         );
       case "templates":

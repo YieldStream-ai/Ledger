@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ChevronDown, ChevronRight, Play, Settings } from "lucide-react";
 import type { ParseConfig } from "../../api/types";
 
@@ -8,6 +8,7 @@ interface ConfigPanelProps {
   onRunParse: () => void;
   isRunning: boolean;
   hasFiles: boolean;
+  fileCount?: number;
 }
 
 const DOC_TYPES = [
@@ -80,16 +81,65 @@ function SectionHeader({
   );
 }
 
+function getPageLabel(pageRange: string): string {
+  const opt = PAGE_RANGE_OPTIONS.find((o) => o.value === pageRange);
+  return opt ? opt.label : pageRange;
+}
+
+function getDocTypeLabel(hint: string): string {
+  if (!hint) return "Auto-detect document type";
+  const dt = DOC_TYPES.find((d) => d.value === hint);
+  return dt ? dt.label : hint;
+}
+
+function estimateCostAndTime(
+  config: ParseConfig,
+  fileCount: number
+): { cost: string; time: string } {
+  const baseCostPerFile = 0.02;
+  const baseTimePerFile = 6;
+  const enrichmentMultiplier = config.includeEnrichment ? 1.8 : 1;
+
+  let pageMultiplier = 1;
+  if (config.pageRange === "1") pageMultiplier = 0.2;
+  else if (config.pageRange === "1-3") pageMultiplier = 0.4;
+  else if (config.pageRange === "1-5") pageMultiplier = 0.6;
+
+  const totalCost = fileCount * baseCostPerFile * enrichmentMultiplier * pageMultiplier;
+  const totalTime = Math.ceil(
+    fileCount * baseTimePerFile * enrichmentMultiplier * pageMultiplier
+  );
+
+  return {
+    cost: `$${totalCost < 0.01 ? "< 0.01" : totalCost.toFixed(2)}`,
+    time: totalTime < 60 ? `~${totalTime}s` : `~${Math.ceil(totalTime / 60)}m`,
+  };
+}
+
 export function ConfigPanel({
   config,
   onChange,
   onRunParse,
   isRunning,
   hasFiles,
+  fileCount = 0,
 }: ConfigPanelProps) {
   const [sections, setSections] = useState<Record<SectionKey, boolean>>(
     loadSectionState
   );
+
+  const summary = useMemo(() => {
+    if (!hasFiles) return null;
+    const { cost, time } = estimateCostAndTime(config, fileCount);
+    return {
+      docType: getDocTypeLabel(config.documentTypeHint),
+      pages: getPageLabel(config.pageRange),
+      balanceCheck: config.crossCheckBalances,
+      enrichment: config.includeEnrichment,
+      cost,
+      time,
+    };
+  }, [config, hasFiles, fileCount]);
 
   const toggle = useCallback((key: SectionKey) => {
     setSections((prev) => {
@@ -325,8 +375,39 @@ export function ConfigPanel({
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 p-4">
+      {/* Parse Summary + Footer */}
+      <div className="border-t border-gray-200 p-4 space-y-3">
+        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/50 px-3.5 py-3">
+          {summary ? (
+            <ul className="space-y-1 font-mono text-xs text-gray-600">
+              <li className="flex items-start gap-1.5">
+                <span className="text-gray-400 select-none">&rarr;</span>
+                {summary.docType}
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-gray-400 select-none">&rarr;</span>
+                Pages: {summary.pages}
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-gray-400 select-none">&rarr;</span>
+                Validation: Balance check {summary.balanceCheck ? "ON" : "OFF"}
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-gray-400 select-none">&rarr;</span>
+                Enrichment: {summary.enrichment ? "ON" : "OFF"}
+              </li>
+              <li className="flex items-start gap-1.5 pt-1 border-t border-gray-200 mt-1">
+                <span className="text-gray-400 select-none">&rarr;</span>
+                Est. cost: {summary.cost} &middot; {summary.time}
+              </li>
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-400 text-center">
+              Upload a file to see estimate
+            </p>
+          )}
+        </div>
+
         <button
           onClick={onRunParse}
           disabled={!hasFiles || isRunning}
