@@ -1,10 +1,102 @@
 @import "tailwindcss";
 
+/* ========================================
+   DS2 Tokens — CSS Custom Properties
+   YieldStream Achromatic Ink-Blue System
+   ======================================== */
+:root {
+  /* ── Surfaces ── */
+  --ds-canvas: lch(98.94% 0.5 282);
+  --ds-surface: lch(100% 0.5 282);
+  --ds-surface-sunken: lch(95.94% 0.5 282);
+  --ds-surface-sunken-subtle: lch(90.94% 0.5 282);
+
+  /* ── Ink (text hierarchy) ── */
+  --ds-ink-primary: #111827;
+  --ds-ink-secondary: #374151;
+  --ds-ink-tertiary: lch(38.376% 1.25 282);
+  --ds-ink-quaternary: #9ca3af;
+
+  /* ── Accent ── */
+  --ds-accent: #1f2937;
+  --ds-accent-hover: #111827;
+  --ds-accent-active: #030712;
+  --ds-accent-wash: rgba(31, 41, 55, 0.04);
+  --ds-accent-wash-hover: rgba(31, 41, 55, 0.06);
+  --ds-accent-border: rgba(31, 41, 55, 0.12);
+  --ds-accent-text-on: #ffffff;
+  --ds-surface-expanded: rgba(31, 41, 55, 0.025);
+
+  /* ── Status ── */
+  --ds-status-advance: #2f7d4f;
+  --ds-status-advance-wash: rgba(47, 125, 79, 0.07);
+  --ds-status-caution: #b8860b;
+  --ds-status-caution-wash: rgba(184, 134, 11, 0.08);
+  --ds-status-decline: #a8321e;
+  --ds-status-decline-wash: rgba(168, 50, 30, 0.06);
+  --ds-status-neutral: #6b7280;
+
+  /* ── Borders ── */
+  --ds-border-hairline: lch(96 1 250);
+  --ds-border-standard: lch(92 1.5 250);
+  --ds-border-strong: lch(85 2 250);
+
+  /* ── Focus ── */
+  --ds-focus-border: var(--ds-accent);
+  --ds-focus-ring: rgba(27, 58, 95, 0.12);
+
+  /* ── Radius ── */
+  --ds-radius-sm: 1px;
+  --ds-radius-base: 2px;
+  --ds-radius-md: 2px;
+  --ds-radius-lg: 3px;
+  --ds-radius-xl: 4px;
+  --ds-radius-2xl: 6px;
+  --ds-radius-full: 9999px;
+
+  /* ── Elevation ── */
+  --ds-elevation-raised: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 1px var(--ds-border-hairline);
+  --ds-elevation-overlay: 0 12px 32px rgba(15, 23, 42, 0.12), 0 0 0 1px var(--ds-border-standard);
+
+  /* ── Transitions ── */
+  --ds-transition-fast: 100ms;
+  --ds-transition-base: 150ms;
+  --ds-transition-slow: 250ms;
+  --ds-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Typography ── */
+  --ds-font-sans: var(--font-inter), "Inter Variable", system-ui, sans-serif;
+  --ds-font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+  --ds-font-size-xs: 0.5625rem;
+  --ds-font-size-sm: 0.75rem;
+  --ds-font-size-base: 0.875rem;
+  --ds-font-size-lg: 0.9375rem;
+  --ds-font-size-xl: 1.125rem;
+  --ds-font-weight-read: 400;
+  --ds-font-weight-ui: 520;
+  --ds-font-weight-announce: 620;
+
+  /* ── Dark mode (sidebar / overlays) ── */
+  --ds-dark-canvas: #0e0f11;
+  --ds-dark-surface: #16181b;
+  --ds-dark-surface-sunken: #101113;
+  --ds-dark-surface-raised: #1c1e22;
+  --ds-dark-ink-primary: #f2f1ed;
+  --ds-dark-ink-secondary: #c8c7c2;
+  --ds-dark-ink-tertiary: #8a8a84;
+  --ds-dark-ink-quaternary: #5e5e58;
+  --ds-dark-accent: #6fa3d9;
+  --ds-dark-accent-wash: rgba(111, 163, 217, 0.08);
+  --ds-dark-border-hairline: rgba(255, 255, 255, 0.07);
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--ds-font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--ds-canvas);
+  color: var(--ds-ink-primary);
 }
 
 #root {

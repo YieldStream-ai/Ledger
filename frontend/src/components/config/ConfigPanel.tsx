@@ -71,10 +71,10 @@ function SectionHeader({
     <button
       type="button"
       onClick={onToggle}
-      className="flex items-center gap-1.5 w-full py-2 text-left group"
+      className="flex items-center gap-1.5 w-full pt-1 pb-4 text-left group"
     >
       <Chevron className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-[0.08em]">
         {label}
       </span>
     </button>
@@ -168,9 +168,9 @@ export function ConfigPanel({
           onToggle={() => toggle("document")}
         />
         {sections.document && (
-          <div className="space-y-4 pb-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Document Type
               </label>
               <select
@@ -178,7 +178,7 @@ export function ConfigPanel({
                 onChange={(e) =>
                   onChange({ ...config, documentTypeHint: e.target.value })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-9 rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
               >
                 {DOC_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
@@ -189,7 +189,7 @@ export function ConfigPanel({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Page Range
               </label>
               <select
@@ -197,7 +197,7 @@ export function ConfigPanel({
                 onChange={(e) =>
                   onChange({ ...config, pageRange: e.target.value })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-9 rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
               >
                 {PAGE_RANGE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -209,7 +209,7 @@ export function ConfigPanel({
           </div>
         )}
 
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-gray-100 mt-7" />
 
         {/* ── Validation ── */}
         <SectionHeader
@@ -218,22 +218,27 @@ export function ConfigPanel({
           onToggle={() => toggle("validation")}
         />
         {sections.validation && (
-          <div className="space-y-4 pb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={config.crossCheckBalances}
-                onChange={(e) =>
-                  onChange({ ...config, crossCheckBalances: e.target.checked })
-                }
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Cross-check balances</span>
-            </label>
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.crossCheckBalances}
+                  onChange={(e) =>
+                    onChange({ ...config, crossCheckBalances: e.target.checked })
+                  }
+                  className="h-[18px] w-[18px] rounded border-[1.5px] border-gray-300 accent-gray-800 focus:ring-gray-800"
+                />
+                <span className="text-sm text-gray-700">Cross-check balances</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-[26px]">
+                Verify beginning + credits &minus; debits = ending balance
+              </p>
+            </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-gray-700">
+                <label className="text-sm font-medium text-gray-700">
                   Confidence threshold
                 </label>
                 <span className="text-xs tabular-nums text-gray-500">
@@ -252,7 +257,7 @@ export function ConfigPanel({
                     confidenceThreshold: parseFloat(e.target.value),
                   })
                 }
-                className="w-full accent-blue-600"
+                className="w-full accent-gray-800"
               />
               <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                 <span>50%</span>
@@ -267,14 +272,14 @@ export function ConfigPanel({
                 onChange={(e) =>
                   onChange({ ...config, flagDuplicates: e.target.checked })
                 }
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-[18px] w-[18px] rounded border-[1.5px] border-gray-300 accent-gray-800 focus:ring-gray-800"
               />
               <span className="text-sm text-gray-700">Flag duplicates</span>
             </label>
           </div>
         )}
 
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-gray-100 mt-7" />
 
         {/* ── Enrichment ── */}
         <SectionHeader
@@ -283,7 +288,7 @@ export function ConfigPanel({
           onToggle={() => toggle("enrichment")}
         />
         {sections.enrichment && (
-          <div className="space-y-4 pb-2">
+          <div className="space-y-4">
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -292,7 +297,7 @@ export function ConfigPanel({
                   onChange={(e) =>
                     onChange({ ...config, includeEnrichment: e.target.checked })
                   }
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-[18px] w-[18px] rounded border-[1.5px] border-gray-300 accent-gray-800 focus:ring-gray-800"
                 />
                 <span className="text-sm text-gray-700">
                   Include AI Enrichment
@@ -304,9 +309,9 @@ export function ConfigPanel({
             </div>
 
             {config.includeEnrichment && (
-              <div className="space-y-3 pl-1 border-l-2 border-blue-200 ml-2">
+              <div className="space-y-3 pl-1 border-l-2 border-gray-300 ml-2">
                 <div className="pl-3">
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Business Name
                   </label>
                   <input
@@ -316,11 +321,11 @@ export function ConfigPanel({
                       onChange({ ...config, businessName: e.target.value })
                     }
                     placeholder="e.g. Acme Corp"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
                   />
                 </div>
                 <div className="pl-3">
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Industry
                   </label>
                   <input
@@ -330,14 +335,14 @@ export function ConfigPanel({
                       onChange({ ...config, industry: e.target.value })
                     }
                     placeholder="e.g. Restaurant, Retail"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Anonymization mode
               </label>
               <select
@@ -345,7 +350,7 @@ export function ConfigPanel({
                 onChange={(e) =>
                   onChange({ ...config, anonymizationMode: e.target.value })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-9 rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
               >
                 {ANON_MODES.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -353,6 +358,9 @@ export function ConfigPanel({
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Redact PII from extracted output.
+              </p>
             </div>
 
             <label className="flex items-center gap-2 cursor-pointer">
@@ -365,7 +373,7 @@ export function ConfigPanel({
                     currencyNormalization: e.target.checked,
                   })
                 }
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-[18px] w-[18px] rounded border-[1.5px] border-gray-300 accent-gray-800 focus:ring-gray-800"
               />
               <span className="text-sm text-gray-700">
                 Currency normalization
@@ -411,7 +419,7 @@ export function ConfigPanel({
         <button
           onClick={onRunParse}
           disabled={!hasFiles || isRunning}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Play className="w-4 h-4" />
           {isRunning ? "Parsing..." : "Run Parse"}
