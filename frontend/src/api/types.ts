@@ -124,8 +124,13 @@ export interface ParseResponse {
 
 export interface ParseConfig {
   documentTypeHint: string;
-  includeEnrichment: boolean;
+  pageRange: string;
   crossCheckBalances: boolean;
+  confidenceThreshold: number;
+  flagDuplicates: boolean;
+  includeEnrichment: boolean;
+  anonymizationMode: string;
+  currencyNormalization: boolean;
   businessName: string;
   industry: string;
 }

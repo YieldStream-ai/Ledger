@@ -1,16 +1,17 @@
 import { useState, useCallback } from "react";
-import { AppLayout } from "../components/layout/AppLayout";
-import { DropZone } from "../components/upload/DropZone";
-import { FileList } from "../components/upload/FileList";
-import { ConfigPanel } from "../components/config/ConfigPanel";
-import { TemplatesConfigPanel } from "../components/config/TemplatesConfigPanel";
-import type { TemplatesSortKey } from "../components/config/TemplatesConfigPanel";
-import { ResultsPanel } from "../components/results/ResultsPanel";
-import { useHealthCheck } from "../hooks/useHealthCheck";
-import { parseUpload } from "../api/client";
-import { ReviewPage } from "./ReviewPage";
-import { TemplatesPage } from "./TemplatesPage";
-import type { FileEntry, ParseConfig } from "../api/types";
+import { AppLayout } from "../../components/layout/AppLayout";
+import { DropZone } from "../../components/upload/DropZone";
+import { FileList } from "../../components/upload/FileList";
+import { ConfigPanel } from "../../components/config/ConfigPanel";
+import { TemplatesConfigPanel } from "../../components/config/TemplatesConfigPanel";
+import type { TemplatesSortKey } from "../../components/config/TemplatesConfigPanel";
+import { ResultsPanel } from "../../components/results/ResultsPanel";
+import { useHealthCheck } from "../../hooks/useHealthCheck";
+import { parseUpload } from "../../api/client";
+import { ReviewPage } from "../ReviewPage";
+import { TemplatesPage } from "../TemplatesPage";
+import type { FileEntry, ParseConfig } from "../../api/types";
+import styles from "./ParsePage.module.css";
 
 let nextId = 1;
 
@@ -22,8 +23,13 @@ export function ParsePage() {
   const [isRunning, setIsRunning] = useState(false);
   const [config, setConfig] = useState<ParseConfig>({
     documentTypeHint: "",
-    includeEnrichment: false,
+    pageRange: "all",
     crossCheckBalances: true,
+    confidenceThreshold: 0.85,
+    flagDuplicates: false,
+    includeEnrichment: false,
+    anonymizationMode: "none",
+    currencyNormalization: false,
     businessName: "",
     industry: "",
   });
@@ -152,7 +158,7 @@ export function ParsePage() {
           onBankNamesLoaded={setTemplateBankNames}
         />
       ) : (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className={styles.container}>
           <FileList
             files={files}
             activeFileId={activeFileId}
@@ -161,30 +167,30 @@ export function ParsePage() {
           />
 
           {activeFile?.result ? (
-            <div className="flex-1 overflow-auto">
+            <div className={styles.resultsWrapper}>
               <ResultsPanel result={activeFile.result} />
             </div>
           ) : activeFile?.status === "error" ? (
-            <div className="flex-1 flex items-center justify-center p-6">
-              <div className="bg-red-50 text-red-700 rounded-lg p-4 max-w-md text-sm">
-                <p className="font-medium">Parse failed</p>
-                <p className="mt-1">{activeFile.error}</p>
+            <div className={styles.errorWrapper}>
+              <div className={styles.errorCard}>
+                <p className={styles.errorTitle}>Parse failed</p>
+                <p className={styles.errorMessage}>{activeFile.error}</p>
               </div>
             </div>
           ) : activeFile?.status === "uploading" ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-gray-600 mt-4">
+            <div className={styles.loadingWrapper}>
+              <div className={styles.loadingContent}>
+                <div className={styles.spinner} />
+                <p className={styles.loadingFile}>
                   Parsing {activeFile.file.name}...
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className={styles.loadingProgress}>
                   Upload: {activeFile.progress}%
                 </p>
               </div>
             </div>
           ) : (
-            <div className="flex-1 min-h-0 flex p-6">
+            <div className={styles.dropArea}>
               <DropZone onFilesAdded={handleFilesAdded} />
             </div>
           )}

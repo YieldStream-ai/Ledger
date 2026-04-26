@@ -1,4 +1,5 @@
-import { Play, Settings } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ChevronDown, ChevronRight, Play, Settings } from "lucide-react";
 import type { ParseConfig } from "../../api/types";
 
 interface ConfigPanelProps {
@@ -17,6 +18,68 @@ const DOC_TYPES = [
   { value: "mca_application", label: "MCA Application" },
 ];
 
+const PAGE_RANGE_OPTIONS = [
+  { value: "all", label: "All pages" },
+  { value: "1", label: "First page only" },
+  { value: "1-3", label: "Pages 1–3" },
+  { value: "1-5", label: "Pages 1–5" },
+  { value: "custom", label: "Custom range" },
+];
+
+const ANON_MODES = [
+  { value: "none", label: "None" },
+  { value: "redact", label: "Redact PII" },
+  { value: "mask", label: "Mask (partial)" },
+];
+
+const STORAGE_KEY = "ys-config-sections";
+
+type SectionKey = "document" | "validation" | "enrichment";
+
+const DEFAULT_OPEN: Record<SectionKey, boolean> = {
+  document: true,
+  validation: true,
+  enrichment: false,
+};
+
+function loadSectionState(): Record<SectionKey, boolean> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...DEFAULT_OPEN, ...JSON.parse(raw) };
+  } catch {
+    /* ignore */
+  }
+  return { ...DEFAULT_OPEN };
+}
+
+function saveSectionState(state: Record<SectionKey, boolean>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function SectionHeader({
+  label,
+  isOpen,
+  onToggle,
+}: {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const Chevron = isOpen ? ChevronDown : ChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-1.5 w-full py-2 text-left group"
+    >
+      <Chevron className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export function ConfigPanel({
   config,
   onChange,
@@ -24,8 +87,21 @@ export function ConfigPanel({
   isRunning,
   hasFiles,
 }: ConfigPanelProps) {
+  const [sections, setSections] = useState<Record<SectionKey, boolean>>(
+    loadSectionState
+  );
+
+  const toggle = useCallback((key: SectionKey) => {
+    setSections((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveSectionState(next);
+      return next;
+    });
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="border-b border-gray-200 px-5 py-4">
         <div className="flex items-center gap-2">
           <Settings className="w-4 h-4 text-gray-500" />
@@ -33,94 +109,223 @@ export function ConfigPanel({
         </div>
       </div>
 
-      <div className="flex-1 p-5 space-y-5 overflow-auto">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-            Document Type
-          </label>
-          <select
-            value={config.documentTypeHint}
-            onChange={(e) =>
-              onChange({ ...config, documentTypeHint: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {DOC_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={config.crossCheckBalances}
-              onChange={(e) =>
-                onChange({ ...config, crossCheckBalances: e.target.checked })
-              }
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">Cross-check balances</span>
-          </label>
-          <p className="text-xs text-gray-500 mt-1 ml-6">
-            Verify beginning + credits − debits = ending balance
-          </p>
-        </div>
-
-        <div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={config.includeEnrichment}
-              onChange={(e) =>
-                onChange({ ...config, includeEnrichment: e.target.checked })
-              }
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">Include AI Enrichment</span>
-          </label>
-          <p className="text-xs text-gray-500 mt-1 ml-6">
-            Adds 25+ financial risk indicators via Gemini
-          </p>
-        </div>
-
-        {config.includeEnrichment && (
-          <div className="space-y-3 pl-1 border-l-2 border-blue-200 ml-2">
-            <div className="pl-3">
+      {/* Scrollable content */}
+      <div className="flex-1 px-5 py-3 overflow-auto">
+        {/* ── Document ── */}
+        <SectionHeader
+          label="Document"
+          isOpen={sections.document}
+          onToggle={() => toggle("document")}
+        />
+        {sections.document && (
+          <div className="space-y-4 pb-4">
+            <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Business Name
+                Document Type
               </label>
-              <input
-                type="text"
-                value={config.businessName}
+              <select
+                value={config.documentTypeHint}
                 onChange={(e) =>
-                  onChange({ ...config, businessName: e.target.value })
+                  onChange({ ...config, documentTypeHint: e.target.value })
                 }
-                placeholder="e.g. Acme Corp"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {DOC_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="pl-3">
+
+            <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Industry
+                Page Range
               </label>
-              <input
-                type="text"
-                value={config.industry}
+              <select
+                value={config.pageRange}
                 onChange={(e) =>
-                  onChange({ ...config, industry: e.target.value })
+                  onChange({ ...config, pageRange: e.target.value })
                 }
-                placeholder="e.g. Restaurant, Retail"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {PAGE_RANGE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+        )}
+
+        <div className="border-t border-gray-100" />
+
+        {/* ── Validation ── */}
+        <SectionHeader
+          label="Validation"
+          isOpen={sections.validation}
+          onToggle={() => toggle("validation")}
+        />
+        {sections.validation && (
+          <div className="space-y-4 pb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.crossCheckBalances}
+                onChange={(e) =>
+                  onChange({ ...config, crossCheckBalances: e.target.checked })
+                }
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Cross-check balances</span>
+            </label>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-gray-700">
+                  Confidence threshold
+                </label>
+                <span className="text-xs tabular-nums text-gray-500">
+                  {Math.round(config.confidenceThreshold * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.5}
+                max={1}
+                step={0.05}
+                value={config.confidenceThreshold}
+                onChange={(e) =>
+                  onChange({
+                    ...config,
+                    confidenceThreshold: parseFloat(e.target.value),
+                  })
+                }
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.flagDuplicates}
+                onChange={(e) =>
+                  onChange({ ...config, flagDuplicates: e.target.checked })
+                }
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Flag duplicates</span>
+            </label>
+          </div>
+        )}
+
+        <div className="border-t border-gray-100" />
+
+        {/* ── Enrichment ── */}
+        <SectionHeader
+          label="Enrichment"
+          isOpen={sections.enrichment}
+          onToggle={() => toggle("enrichment")}
+        />
+        {sections.enrichment && (
+          <div className="space-y-4 pb-2">
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.includeEnrichment}
+                  onChange={(e) =>
+                    onChange({ ...config, includeEnrichment: e.target.checked })
+                  }
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">
+                  Include AI Enrichment
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Adds 25+ financial risk indicators via Gemini
+              </p>
+            </div>
+
+            {config.includeEnrichment && (
+              <div className="space-y-3 pl-1 border-l-2 border-blue-200 ml-2">
+                <div className="pl-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    value={config.businessName}
+                    onChange={(e) =>
+                      onChange({ ...config, businessName: e.target.value })
+                    }
+                    placeholder="e.g. Acme Corp"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="pl-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Industry
+                  </label>
+                  <input
+                    type="text"
+                    value={config.industry}
+                    onChange={(e) =>
+                      onChange({ ...config, industry: e.target.value })
+                    }
+                    placeholder="e.g. Restaurant, Retail"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Anonymization mode
+              </label>
+              <select
+                value={config.anonymizationMode}
+                onChange={(e) =>
+                  onChange({ ...config, anonymizationMode: e.target.value })
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {ANON_MODES.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.currencyNormalization}
+                onChange={(e) =>
+                  onChange({
+                    ...config,
+                    currencyNormalization: e.target.checked,
+                  })
+                }
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">
+                Currency normalization
+              </span>
+            </label>
           </div>
         )}
       </div>
 
+      {/* Footer */}
       <div className="border-t border-gray-200 p-4">
         <button
           onClick={onRunParse}
