@@ -9,3 +9,15 @@ build:
 
 build-local:
 	docker build -f Dockerfile.local -t yieldstream-qualify-local .
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
+
+up:
+	docker compose up --build
+
+down:
+	docker compose down
