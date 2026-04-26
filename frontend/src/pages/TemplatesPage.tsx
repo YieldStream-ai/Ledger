@@ -1,20 +1,50 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { getBankTemplates } from "../api/client";
 import type { TemplateDetail } from "../api/types";
+import type { TemplatesSortKey } from "../components/config/TemplatesConfigPanel";
 
-export function TemplatesPage() {
+interface TemplatesPageProps {
+  bankFilter: string;
+  sortBy: TemplatesSortKey;
+  onBankNamesLoaded: (names: string[]) => void;
+}
+
+export function TemplatesPage({ bankFilter, sortBy, onBankNamesLoaded }: TemplatesPageProps) {
   const { data: templates = [], isLoading } = useQuery<TemplateDetail[]>({
     queryKey: ["bankTemplates"],
     queryFn: getBankTemplates,
   });
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const sorted = [...templates].sort(
-    (a, b) => b.match_count_30d - a.match_count_30d
+  const bankNames = useMemo(
+    () => [...new Set(templates.map((t) => t.bank_name))].sort(),
+    [templates]
   );
+
+  useEffect(() => {
+    if (bankNames.length > 0) onBankNamesLoaded(bankNames);
+  }, [bankNames, onBankNamesLoaded]);
+
+  const filtered = bankFilter
+    ? templates.filter((t) => t.bank_name === bankFilter)
+    : templates;
+
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    switch (sortBy) {
+      case "match_count":
+        return list.sort((a, b) => b.match_count_30d - a.match_count_30d);
+      case "confidence":
+        return list.sort((a, b) => b.signal_count - a.signal_count);
+      case "last_used":
+        return list.sort((a, b) => b.match_count_30d - a.match_count_30d);
+      default:
+        return list;
+    }
+  }, [filtered, sortBy]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

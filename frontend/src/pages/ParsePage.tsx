@@ -3,6 +3,8 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { DropZone } from "../components/upload/DropZone";
 import { FileList } from "../components/upload/FileList";
 import { ConfigPanel } from "../components/config/ConfigPanel";
+import { TemplatesConfigPanel } from "../components/config/TemplatesConfigPanel";
+import type { TemplatesSortKey } from "../components/config/TemplatesConfigPanel";
 import { ResultsPanel } from "../components/results/ResultsPanel";
 import { useHealthCheck } from "../hooks/useHealthCheck";
 import { parseUpload } from "../api/client";
@@ -25,6 +27,11 @@ export function ParsePage() {
     businessName: "",
     industry: "",
   });
+
+  // Templates config state
+  const [templateBankFilter, setTemplateBankFilter] = useState("");
+  const [templateSortBy, setTemplateSortBy] = useState<TemplatesSortKey>("match_count");
+  const [templateBankNames, setTemplateBankNames] = useState<string[]>([]);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
     const entries: FileEntry[] = newFiles.map((file) => ({
@@ -101,25 +108,49 @@ export function ParsePage() {
   const activeFile = files.find((f) => f.id === activeFileId);
   const hasQueuedFiles = files.some((f) => f.status === "queued");
 
+  const configPanelForRoute = (() => {
+    switch (activePage) {
+      case "parse":
+        return (
+          <ConfigPanel
+            config={config}
+            onChange={setConfig}
+            onRunParse={handleRunParse}
+            isRunning={isRunning}
+            hasFiles={hasQueuedFiles}
+          />
+        );
+      case "templates":
+        return (
+          <TemplatesConfigPanel
+            bankFilter={templateBankFilter}
+            onBankFilterChange={setTemplateBankFilter}
+            bankNames={templateBankNames}
+            sortBy={templateSortBy}
+            onSortByChange={setTemplateSortBy}
+            onRegisterNew={() => {/* TODO */}}
+          />
+        );
+      default:
+        return null;
+    }
+  })();
+
   return (
     <AppLayout
       activePage={activePage}
       onNavigate={setActivePage}
       healthy={healthy}
-      configPanel={
-        <ConfigPanel
-          config={config}
-          onChange={setConfig}
-          onRunParse={handleRunParse}
-          isRunning={isRunning}
-          hasFiles={hasQueuedFiles}
-        />
-      }
+      configPanel={configPanelForRoute}
     >
       {activePage === "review" ? (
         <ReviewPage />
       ) : activePage === "templates" ? (
-        <TemplatesPage />
+        <TemplatesPage
+          bankFilter={templateBankFilter}
+          sortBy={templateSortBy}
+          onBankNamesLoaded={setTemplateBankNames}
+        />
       ) : (
         <div className="flex flex-col h-full overflow-hidden">
           <FileList
