@@ -1,6 +1,6 @@
 <div align="center">
 
-# YieldStream Qualify
+# YieldStream Ledger
 
 **Document Intelligence API for Automated MCA Underwriting**
 
