@@ -347,4 +347,4 @@ Every pipeline stage reports a confidence score (0-1). The final response aggreg
 
 ## License
 
-Proprietary. All rights reserved.
+This project is licensed under the [MIT License](LICENSE).
