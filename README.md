@@ -16,6 +16,8 @@
 
 [Architecture](#architecture) &bull; [API Reference](#api-reference) &bull; [Getting Started](#getting-started) &bull; [Design Decisions](#design-decisions)
 
+![YieldStream Ledger](ys-ledger-image.png)
+
 </div>
 
 ---
