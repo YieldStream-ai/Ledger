@@ -9,6 +9,7 @@ import type {
   ParseResponse,
   Period,
   Revenue,
+  Summary,
   TemplateMatchResult,
 } from "../../../api/types";
 import styles from "./SummaryTab.module.css";
@@ -135,14 +136,36 @@ function CashFlowSection({ cashFlow }: { cashFlow: CashFlow }) {
           { label: "Total Outflows", value: fmtMoney(cashFlow.total_outflows) },
           { label: "Net Change", value: fmtMoney(cashFlow.net_change) },
           { label: "Avg Daily Balance", value: fmtMoney(cashFlow.average_daily_balance) },
+          { label: "Ending Balance Trend", value: fmtText(cashFlow.ending_balance_trend) },
           { label: "Min Balance", value: fmtMoney(cashFlow.min_balance) },
           { label: "Min Balance Date", value: fmtText(cashFlow.min_balance_date) },
+          { label: "Days Below Threshold", value: fmtNumber(cashFlow.days_below_threshold) },
           { label: "Negative Balance Days", value: fmtNumber(cashFlow.negative_balance_days) },
           { label: "NSF Count", value: fmtNumber(cashFlow.nsf_count) },
+          { label: "NSF (30d)", value: fmtNumber(cashFlow.nsf_count_30d) },
+          { label: "NSF (60d)", value: fmtNumber(cashFlow.nsf_count_60d) },
+          { label: "NSF (90d)", value: fmtNumber(cashFlow.nsf_count_90d) },
           { label: "Overdraft Events", value: fmtNumber(cashFlow.overdraft_events.length) },
+          { label: "Suspicious Transfers", value: fmtNumber(cashFlow.suspicious_transfers.length) },
           { label: "Daily Balance Days", value: fmtNumber(Object.keys(cashFlow.daily_balances).length) },
         ]}
       />
+      {cashFlow.suspicious_transfers.length > 0 && (
+        <div className={styles.metadata} style={{ marginTop: "0.5rem" }}>
+          {cashFlow.suspicious_transfers.map((t, i) => (
+            <p key={i}>
+              {t.description} — {fmtMoney(t.amount)}
+            </p>
+          ))}
+        </div>
+      )}
+      {cashFlow.anomalies.length > 0 && (
+        <div className={styles.metadata} style={{ marginTop: "0.5rem" }}>
+          {cashFlow.anomalies.map((a, i) => (
+            <p key={i} className={styles.metadataMissing}>⚠ {a}</p>
+          ))}
+        </div>
+      )}
     </NamespaceSection>
   );
 }
@@ -154,6 +177,12 @@ function RevenueSection({ revenue }: { revenue: Revenue }) {
         fields={[
           { label: "Gross Deposits", value: fmtMoney(revenue.gross_deposits) },
           { label: "Deposit Count", value: fmtNumber(revenue.deposit_count) },
+          { label: "Monthly Average", value: fmtMoney(revenue.monthly_average) },
+          { label: "Trend", value: fmtText(revenue.trend) },
+          { label: "Volatility", value: revenue.volatility === null ? "--" : revenue.volatility.toFixed(2) },
+          { label: "Best Month", value: fmtMoney(revenue.best_month) },
+          { label: "Worst Month", value: fmtMoney(revenue.worst_month) },
+          { label: "Avg Transaction Size", value: fmtMoney(revenue.avg_transaction_size) },
           { label: "Non-Processor Inflows", value: fmtMoney(revenue.non_processor_inflows) },
           { label: "Recurring Revenue Est.", value: fmtMoney(revenue.recurring_revenue_estimate) },
           { label: "Processor Deposits", value: fmtNumber(revenue.processor_deposits.length) },
@@ -164,6 +193,13 @@ function RevenueSection({ revenue }: { revenue: Revenue }) {
           { label: "Seasonality Signal", value: fmtText(revenue.seasonality_signal) },
         ]}
       />
+      {revenue.anomalies.length > 0 && (
+        <div className={styles.metadata} style={{ marginTop: "0.5rem" }}>
+          {revenue.anomalies.map((a, i) => (
+            <p key={i} className={styles.metadataMissing}>⚠ {a}</p>
+          ))}
+        </div>
+      )}
     </NamespaceSection>
   );
 }
@@ -192,6 +228,55 @@ function DebtSection({ debt }: { debt: Debt }) {
               {pos.estimated_balance !== null ? ` — bal ${fmtMoney(pos.estimated_balance)}` : ""}
             </p>
           ))}
+        </div>
+      )}
+      {debt.lien_flags.length > 0 && (
+        <div className={styles.metadata} style={{ marginTop: "0.5rem" }}>
+          {debt.lien_flags.map((flag, i) => (
+            <p key={i} className={styles.metadataMissing}>⚠ {flag}</p>
+          ))}
+        </div>
+      )}
+      {debt.anomalies.length > 0 && (
+        <div className={styles.metadata} style={{ marginTop: "0.5rem" }}>
+          {debt.anomalies.map((a, i) => (
+            <p key={i} className={styles.metadataMissing}>⚠ {a}</p>
+          ))}
+        </div>
+      )}
+    </NamespaceSection>
+  );
+}
+
+function SummarySection({ summary }: { summary: Summary }) {
+  if (!summary.narrative && summary.key_concerns.length === 0 && summary.strengths.length === 0) {
+    return null;
+  }
+  return (
+    <NamespaceSection title="Summary">
+      {summary.narrative && (
+        <p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "0.75rem", lineHeight: 1.5 }}>
+          {summary.narrative}
+        </p>
+      )}
+      {summary.key_concerns.length > 0 && (
+        <div style={{ marginBottom: "0.5rem" }}>
+          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.25rem" }}>Key concerns</p>
+          <ul style={{ fontSize: "0.875rem", paddingLeft: "1rem", color: "#b45309" }}>
+            {summary.key_concerns.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {summary.strengths.length > 0 && (
+        <div>
+          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.25rem" }}>Strengths</p>
+          <ul style={{ fontSize: "0.875rem", paddingLeft: "1rem", color: "#15803d" }}>
+            {summary.strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
         </div>
       )}
     </NamespaceSection>
@@ -383,6 +468,7 @@ export function SummaryTab({ result }: SummaryTabProps) {
       )}
 
       {/* Underwriter namespaces (bank statements) */}
+      {isBankStatement && result.summary && <SummarySection summary={result.summary} />}
       {isBankStatement && result.identity && <IdentitySection identity={result.identity} />}
       {isBankStatement && result.period && <PeriodSection period={result.period} />}
       {isBankStatement && result.cash_flow && <CashFlowSection cashFlow={result.cash_flow} />}

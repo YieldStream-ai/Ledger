@@ -133,6 +133,11 @@ export interface OverdraftEvent {
   amount: number;
 }
 
+export interface SuspiciousTransfer {
+  description: string;
+  amount: number;
+}
+
 export interface CashFlow {
   starting_balance: number | null;
   ending_balance: number | null;
@@ -143,9 +148,16 @@ export interface CashFlow {
   min_balance: number | null;
   min_balance_date: string | null;
   average_daily_balance: number | null;
+  ending_balance_trend: "growing" | "flat" | "depleting" | null;
+  days_below_threshold: number | null;
   negative_balance_days: number | null;
   nsf_count: number | null;
+  nsf_count_30d: number | null;
+  nsf_count_60d: number | null;
+  nsf_count_90d: number | null;
   overdraft_events: OverdraftEvent[];
+  suspicious_transfers: SuspiciousTransfer[];
+  anomalies: string[];
 }
 
 export interface ProcessorDeposit {
@@ -168,12 +180,19 @@ export interface Concentration {
 export interface Revenue {
   gross_deposits: number | null;
   deposit_count: number | null;
+  monthly_average: number | null;
+  trend: "growing" | "stable" | "declining" | null;
+  volatility: number | null;
+  best_month: number | null;
+  worst_month: number | null;
+  avg_transaction_size: number | null;
   processor_deposits: ProcessorDeposit[];
   non_processor_inflows: number | null;
   recurring_revenue_estimate: number | null;
   chargebacks: Chargebacks;
   concentration: Concentration;
   seasonality_signal: string | null;
+  anomalies: string[];
 }
 
 export interface ActivePosition {
@@ -192,6 +211,13 @@ export interface Debt {
   stacking_burden_pct: number | null;
   dscr: number | null;
   lien_flags: string[];
+  anomalies: string[];
+}
+
+export interface Summary {
+  narrative: string | null;
+  key_concerns: string[];
+  strengths: string[];
 }
 
 export interface ExpenseLine {
@@ -236,6 +262,7 @@ export interface ParseResponse {
   debt: Debt | null;
   expenses: Expenses | null;
   validation: Validation | null;
+  summary: Summary | null;
   confidence: ConfidenceDetail | null;
 
   // Operational / observability

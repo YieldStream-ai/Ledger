@@ -32,6 +32,8 @@ from app.models.responses import (
     Period,
     QualityResult,
     Revenue,
+    Summary,
+    SuspiciousTransfer,
     TierLog,
     Validation,
 )
@@ -377,13 +379,15 @@ def _process_pdf(
         )
 
         if is_bank_statement and parsed_data:
+            anomaly_buckets = _route_anomalies(enrichment_data)
             identity = _build_identity(parsed_data)
             period = _build_period(parsed_data)
-            cash_flow = _build_cash_flow(parsed_data)
-            revenue = _build_revenue(parsed_data)
-            debt = _build_debt(enrichment_data)
+            cash_flow = _build_cash_flow(parsed_data, enrichment_data, anomaly_buckets["cash_flow"])
+            revenue = _build_revenue(parsed_data, enrichment_data, anomaly_buckets["revenue"])
+            debt = _build_debt(enrichment_data, anomaly_buckets["debt"])
             expenses = Expenses()  # Phase 0: no extractor yet
             validation = _build_validation(validation_obj)
+            summary = _build_summary(enrichment_data)
             by_category = _compute_by_category(
                 parsed_data, enrichment_data, template_match_score, text_quality
             )
@@ -391,7 +395,7 @@ def _process_pdf(
         else:
             # Non-bank-statement docs (tax returns, MCA apps) keep legacy shape
             # until they get their own namespaced schemas in later phases.
-            identity = period = cash_flow = revenue = debt = expenses = validation = None
+            identity = period = cash_flow = revenue = debt = expenses = validation = summary = None
             by_category = ByCategory()
             response_parsed_data = parsed_data
 
@@ -405,6 +409,7 @@ def _process_pdf(
             debt=debt,
             expenses=expenses,
             validation=validation,
+            summary=summary,
             confidence=ConfidenceDetail(
                 overall=overall,
                 text_quality=text_quality,
@@ -548,7 +553,9 @@ def _build_period(parsed_data: dict) -> Period:
     )
 
 
-def _build_cash_flow(parsed_data: dict) -> CashFlow:
+def _build_cash_flow(
+    parsed_data: dict, enrichment: dict | None, anomalies: list[str]
+) -> CashFlow:
     starting = parsed_data.get("beginning_balance")
     ending = parsed_data.get("ending_balance")
     net_change = (ending - starting) if (starting is not None and ending is not None) else None
@@ -560,6 +567,14 @@ def _build_cash_flow(parsed_data: dict) -> CashFlow:
     if daily_balances:
         min_balance_date, min_balance = min(daily_balances.items(), key=lambda kv: kv[1])
 
+    enr = enrichment or {}
+    suspicious: list[SuspiciousTransfer] = []
+    for tf in enr.get("transfer_flags") or []:
+        suspicious.append(SuspiciousTransfer(
+            description=tf.get("description", ""),
+            amount=float(tf.get("amount", 0.0)),
+        ))
+
     return CashFlow(
         starting_balance=starting,
         ending_balance=ending,
@@ -570,24 +585,41 @@ def _build_cash_flow(parsed_data: dict) -> CashFlow:
         min_balance=min_balance,
         min_balance_date=min_balance_date,
         average_daily_balance=parsed_data.get("average_daily_balance"),
+        ending_balance_trend=enr.get("edb_trend"),
+        days_below_threshold=enr.get("days_below_threshold"),
         negative_balance_days=derived.get("negative_balance_days"),
         nsf_count=parsed_data.get("nsf_count"),
+        nsf_count_30d=enr.get("nsf_count_30d"),
+        nsf_count_60d=enr.get("nsf_count_60d"),
+        nsf_count_90d=enr.get("nsf_count_90d"),
+        suspicious_transfers=suspicious,
+        anomalies=anomalies,
         # overdraft_events: no extractor in Phase 0
     )
 
 
-def _build_revenue(parsed_data: dict) -> Revenue:
+def _build_revenue(
+    parsed_data: dict, enrichment: dict | None, anomalies: list[str]
+) -> Revenue:
+    enr = enrichment or {}
     return Revenue(
         gross_deposits=parsed_data.get("total_deposits"),
-        deposit_count=parsed_data.get("deposit_count"),
+        deposit_count=parsed_data.get("deposit_count") or enr.get("deposit_count"),
+        monthly_average=enr.get("monthly_revenue_avg"),
+        trend=enr.get("monthly_revenue_trend"),
+        volatility=enr.get("revenue_volatility"),
+        best_month=enr.get("best_month_revenue"),
+        worst_month=enr.get("worst_month_revenue"),
+        avg_transaction_size=enr.get("avg_transaction_size"),
+        anomalies=anomalies,
         # processor_deposits / non_processor_inflows / recurring_revenue_estimate /
         # chargebacks / concentration / seasonality_signal: no extractor in Phase 0
     )
 
 
-def _build_debt(enrichment: dict | None) -> Debt:
+def _build_debt(enrichment: dict | None, anomalies: list[str]) -> Debt:
     if not enrichment:
-        return Debt()
+        return Debt(anomalies=anomalies)
 
     positions: list[ActivePosition] = []
     for pos in enrichment.get("active_mca_positions") or []:
@@ -609,7 +641,56 @@ def _build_debt(enrichment: dict | None) -> Debt:
         stacking_burden_pct=enrichment.get("stacking_burden_pct"),
         dscr=enrichment.get("dscr"),
         lien_flags=list(enrichment.get("lien_flags") or []),
+        anomalies=anomalies,
     )
+
+
+def _build_summary(enrichment: dict | None) -> Summary:
+    """Top-level narrative + structured handles.
+
+    Phase 0: narrative comes from the existing Gemini `underwriting_summary`.
+    `key_concerns` and `strengths` ship empty until the prompt is updated to
+    emit them as structured arrays.
+    """
+    if not enrichment:
+        return Summary()
+    narrative = enrichment.get("underwriting_summary") or None
+    return Summary(narrative=narrative)
+
+
+# ─── Anomaly routing ────────────────────────────────────────────────────────
+
+
+# Keyword-based router for `flagged_anomalies`. The current Gemini prompt
+# emits a flat list of strings; we route each to the namespace whose domain
+# the keywords suggest. Unmatched anomalies fall through to cash_flow as the
+# safest default — MCA underwriting watches cash flow first. A future phase
+# should update the Gemini prompt to emit pre-categorized anomalies.
+
+_ANOMALY_ROUTES: list[tuple[str, tuple[str, ...]]] = [
+    ("revenue", ("revenue", "deposit", "sales", "income", "credit", "merchant")),
+    ("debt", ("mca", "stack", "stacking", "lien", "loan", "lender", "advance", "debt", "garnish", "levy")),
+    ("cash_flow", ("withdrawal", "balance", "overdraft", "negative", "nsf", "fee", "transfer", "drain", "drop")),
+]
+
+
+def _route_anomalies(enrichment: dict | None) -> dict[str, list[str]]:
+    """Split flagged_anomalies into per-namespace buckets by keyword."""
+    buckets: dict[str, list[str]] = {"cash_flow": [], "revenue": [], "debt": []}
+    if not enrichment:
+        return buckets
+    for raw in enrichment.get("flagged_anomalies") or []:
+        text = str(raw)
+        lowered = text.lower()
+        routed = False
+        for namespace, keywords in _ANOMALY_ROUTES:
+            if any(kw in lowered for kw in keywords):
+                buckets[namespace].append(text)
+                routed = True
+                break
+        if not routed:
+            buckets["cash_flow"].append(text)
+    return buckets
 
 
 def _build_validation(validation_obj: Any) -> Validation:
@@ -668,12 +749,24 @@ def _compute_by_category(
         derived.get("negative_balance_days"),
         parsed_data.get("nsf_count"),
         parsed_data.get("average_daily_balance"),
+        enr.get("edb_trend"),
+        enr.get("days_below_threshold"),
+        enr.get("nsf_count_30d"),
+        enr.get("nsf_count_60d"),
+        enr.get("nsf_count_90d"),
+        enr.get("transfer_flags"),               # → suspicious_transfers
         None,                                    # overdraft_events: no extractor yet
     ]
 
     revenue_sources = [
         parsed_data.get("total_deposits"),       # → gross_deposits
-        parsed_data.get("deposit_count"),
+        parsed_data.get("deposit_count") or enr.get("deposit_count"),
+        enr.get("monthly_revenue_avg"),
+        enr.get("monthly_revenue_trend"),
+        enr.get("revenue_volatility"),
+        enr.get("best_month_revenue"),
+        enr.get("worst_month_revenue"),
+        enr.get("avg_transaction_size"),
         None,                                    # processor_deposits
         None,                                    # non_processor_inflows
         None,                                    # recurring_revenue_estimate

@@ -101,6 +101,11 @@ class OverdraftEvent(BaseModel):
     amount: float
 
 
+class SuspiciousTransfer(BaseModel):
+    description: str
+    amount: float
+
+
 class CashFlow(BaseModel):
     starting_balance: float | None = None
     ending_balance: float | None = None
@@ -111,9 +116,16 @@ class CashFlow(BaseModel):
     min_balance: float | None = None
     min_balance_date: str | None = None
     average_daily_balance: float | None = None
+    ending_balance_trend: str | None = None  # "growing" | "flat" | "depleting"
+    days_below_threshold: int | None = None
     negative_balance_days: int | None = None
     nsf_count: int | None = None
+    nsf_count_30d: int | None = None
+    nsf_count_60d: int | None = None
+    nsf_count_90d: int | None = None
     overdraft_events: list[OverdraftEvent] = []
+    suspicious_transfers: list[SuspiciousTransfer] = []
+    anomalies: list[str] = []
 
 
 class ProcessorDeposit(BaseModel):
@@ -136,12 +148,19 @@ class Concentration(BaseModel):
 class Revenue(BaseModel):
     gross_deposits: float | None = None
     deposit_count: int | None = None
+    monthly_average: float | None = None
+    trend: str | None = None  # "growing" | "stable" | "declining"
+    volatility: float | None = None  # 0-1
+    best_month: float | None = None
+    worst_month: float | None = None
+    avg_transaction_size: float | None = None
     processor_deposits: list[ProcessorDeposit] = []
     non_processor_inflows: float | None = None
     recurring_revenue_estimate: float | None = None
     chargebacks: Chargebacks = Chargebacks()
     concentration: Concentration = Concentration()
     seasonality_signal: str | None = None  # "stable" | "seasonal" | "volatile" | None
+    anomalies: list[str] = []
 
 
 class ActivePosition(BaseModel):
@@ -160,6 +179,20 @@ class Debt(BaseModel):
     stacking_burden_pct: float | None = None
     dscr: float | None = None
     lien_flags: list[str] = []
+    anomalies: list[str] = []
+
+
+class Summary(BaseModel):
+    """Free-text + structured underwriter narrative.
+
+    Free-text fields are dangerous in a structured API — consumers tend to
+    parse them and the wording becomes load-bearing. `key_concerns` and
+    `strengths` give callers structured handles up front so the narrative
+    can be the human-readable layer instead of the API contract.
+    """
+    narrative: str | None = None
+    key_concerns: list[str] = []
+    strengths: list[str] = []
 
 
 class ExpenseLine(BaseModel):
@@ -232,6 +265,7 @@ class ParseResponse(BaseModel):
     debt: Debt | None = None
     expenses: Expenses | None = None
     validation: Validation | None = None
+    summary: Summary | None = None
     confidence: ConfidenceDetail | None = None
 
     # Operational / observability
