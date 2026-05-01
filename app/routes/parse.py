@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
-import re
+import math
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, File, Form, UploadFile
@@ -17,13 +18,22 @@ from app.extraction.orchestrator import extract
 from app.models.bank_statement import BankStatementData, Transaction
 from app.models.requests import ParseRequest
 from app.models.responses import (
-    BankProfileSample,
+    ActivePosition,
+    ByCategory,
+    CashFlow,
     ClassificationResult,
     ConfidenceDetail,
+    Debt,
+    Document,
+    Expenses,
+    Identity,
     ParseMetadata,
     ParseResponse,
+    Period,
     QualityResult,
+    Revenue,
     TierLog,
+    Validation,
 )
 from app.parsers.bank.registry import TemplateRegistry
 from app.utils.confidence import compute_field_confidence
@@ -51,14 +61,6 @@ _PERSONAL_TAX_FIELDS = [
 _MCA_APPLICATION_FIELDS = [
     "business_legal_name", "ein", "monthly_revenue", "requested_funding_amount",
 ]
-
-
-def _slugify_bank(name: str) -> str:
-    """Convert bank name to a slug for grouping. 'Navy Federal Credit Union' → 'navy_federal_credit_union'."""
-    slug = name.lower().strip()
-    slug = re.sub(r"[^a-z0-9]+", "_", slug)
-    slug = slug.strip("_")
-    return slug
 
 
 @router.post("/parse", response_model=ParseResponse)
@@ -327,33 +329,11 @@ def _process_pdf(
             gemini_cost_estimate=round(gemini_usage.cost_estimate, 4) if gemini_usage.cost_estimate > 0 else None,
         )
 
-        # 7. Build bank profile sample for template learning
-        bank_profile_sample = None
-        if classification.document_type == "bank_statement" and bank_detected:
-            period_str = None
-            if parsed_data:
-                ps = parsed_data.get("period_start")
-                pe = parsed_data.get("period_end")
-                if ps and pe:
-                    period_str = f"{ps} to {pe}"
-
-            bank_profile_sample = BankProfileSample(
-                bank_name=bank_detected,
-                bank_slug=_slugify_bank(bank_detected),
-                period=period_str,
-                raw_text_sample=extraction.text[:3000],
-                gemini_extraction=gemini_extraction_result,
-                fields_missing=fields_missing,
-                observed_patterns=gemini_extraction_result.get("observed_patterns", {}) if gemini_extraction_result else {},
-                has_template=template_used != "generic",
-            )
-
-        # Arithmetic validation (post-processing, not inside LLM call)
-        validation_result = None
+        # 7. Arithmetic validation (post-processing, not inside LLM call)
+        validation_obj = None
         if cross_check_balances and classification.document_type == "bank_statement" and parsed_data:
             from app.validation.arithmetic import validate_arithmetic
             validation_obj = validate_arithmetic(parsed_data)
-            validation_result = validation_obj.model_dump()
             if validation_obj.balance_check == "failed":
                 import uuid
                 from datetime import datetime, timezone
@@ -369,8 +349,8 @@ def _process_pdf(
                     parsed_data_snapshot=parsed_data,
                 ))
 
-        # Optional AI enrichment
-        enrichment_data = None
+        # 8. Optional AI enrichment (bank statements only)
+        enrichment_data: dict | None = None
         if include_enrichment and classification.document_type == "bank_statement" and extraction.text:
             try:
                 from app.ai.enrichment import enrich_bank_statement
@@ -383,29 +363,67 @@ def _process_pdf(
             except Exception as e:
                 logger.warning(f"Enrichment failed (non-fatal): {e}")
 
+        # 9. Assemble namespaced response
+        text_quality = round(extraction.text_quality, 2)
+        template_match_score = round(template_confidence, 2)
+
+        is_bank_statement = classification.document_type == "bank_statement"
+        document = Document(
+            type=classification.document_type,
+            subtype=classification.subtype,
+            page_count=extraction.page_count,
+            extraction_method=extraction.method,
+            template_used=template_used,
+        )
+
+        if is_bank_statement and parsed_data:
+            identity = _build_identity(parsed_data)
+            period = _build_period(parsed_data)
+            cash_flow = _build_cash_flow(parsed_data)
+            revenue = _build_revenue(parsed_data)
+            debt = _build_debt(enrichment_data)
+            expenses = Expenses()  # Phase 0: no extractor yet
+            validation = _build_validation(validation_obj)
+            by_category = _compute_by_category(
+                parsed_data, enrichment_data, template_match_score, text_quality
+            )
+            response_parsed_data: dict | None = None
+        else:
+            # Non-bank-statement docs (tax returns, MCA apps) keep legacy shape
+            # until they get their own namespaced schemas in later phases.
+            identity = period = cash_flow = revenue = debt = expenses = validation = None
+            by_category = ByCategory()
+            response_parsed_data = parsed_data
+
         return ParseResponse(
-            status="success",
+            status="succeeded",
+            document=document,
+            identity=identity,
+            period=period,
+            cash_flow=cash_flow,
+            revenue=revenue,
+            debt=debt,
+            expenses=expenses,
+            validation=validation,
+            confidence=ConfidenceDetail(
+                overall=overall,
+                text_quality=text_quality,
+                table_extraction=round(table_confidence, 2),
+                template_match=template_match_score,
+                by_category=by_category,
+                needs_human_review=overall < 0.6,
+            ),
             extraction_method=extraction.method,
             page_count=extraction.page_count,
             text_content=extraction.text,
             tables=extraction.tables,
             classification=classification,
-            parsed_data=parsed_data,
-            confidence=ConfidenceDetail(
-                overall=overall,
-                text_quality=round(extraction.text_quality, 2),
-                table_extraction=round(table_confidence, 2),
-                template_match=round(template_confidence, 2),
-                needs_human_review=overall < 0.6,
-            ),
             processing_time_ms=_elapsed(start),
             tier_logs=tier_logs,
             metadata=metadata,
-            bank_profile_sample=bank_profile_sample,
             quality=quality_response,
-            enrichment=enrichment_data,
-            validation=validation_result,
             template_match=template_match_detail,
+            parsed_data=response_parsed_data,
         )
 
     finally:
@@ -510,3 +528,191 @@ def _parse_bank_statement(
 
 def _elapsed(start: float) -> int:
     return int((time.time() - start) * 1000)
+
+
+# ─── Bank-statement → namespace mapping ─────────────────────────────────────
+
+
+def _build_identity(parsed_data: dict) -> Identity:
+    return Identity(
+        account_holder_name=parsed_data.get("account_holder"),
+        account_number_last4=parsed_data.get("account_number_last4"),
+        # business_name / address / ein / consistency_check have no extractor in Phase 0
+    )
+
+
+def _build_period(parsed_data: dict) -> Period:
+    return Period(
+        start=parsed_data.get("period_start"),
+        end=parsed_data.get("period_end"),
+    )
+
+
+def _build_cash_flow(parsed_data: dict) -> CashFlow:
+    starting = parsed_data.get("beginning_balance")
+    ending = parsed_data.get("ending_balance")
+    net_change = (ending - starting) if (starting is not None and ending is not None) else None
+
+    derived = parsed_data.get("derived_metrics") or {}
+    daily_balances = derived.get("daily_ending_balances") or {}
+    min_balance: float | None = None
+    min_balance_date: str | None = None
+    if daily_balances:
+        min_balance_date, min_balance = min(daily_balances.items(), key=lambda kv: kv[1])
+
+    return CashFlow(
+        starting_balance=starting,
+        ending_balance=ending,
+        total_inflows=parsed_data.get("total_deposits"),
+        total_outflows=parsed_data.get("total_withdrawals"),
+        net_change=net_change,
+        daily_balances=daily_balances,
+        min_balance=min_balance,
+        min_balance_date=min_balance_date,
+        average_daily_balance=parsed_data.get("average_daily_balance"),
+        negative_balance_days=derived.get("negative_balance_days"),
+        nsf_count=parsed_data.get("nsf_count"),
+        # overdraft_events: no extractor in Phase 0
+    )
+
+
+def _build_revenue(parsed_data: dict) -> Revenue:
+    return Revenue(
+        gross_deposits=parsed_data.get("total_deposits"),
+        deposit_count=parsed_data.get("deposit_count"),
+        # processor_deposits / non_processor_inflows / recurring_revenue_estimate /
+        # chargebacks / concentration / seasonality_signal: no extractor in Phase 0
+    )
+
+
+def _build_debt(enrichment: dict | None) -> Debt:
+    if not enrichment:
+        return Debt()
+
+    positions: list[ActivePosition] = []
+    for pos in enrichment.get("active_mca_positions") or []:
+        positions.append(ActivePosition(
+            type="mca",
+            lender_name=pos.get("lender_name"),
+            daily_debit=pos.get("daily_debit"),
+            estimated_balance=pos.get("estimated_balance"),
+            # monthly_payment / first_seen: not extracted today
+        ))
+
+    total_daily = enrichment.get("total_daily_debits")
+    total_monthly = (total_daily * 30) if total_daily else None
+
+    return Debt(
+        active_positions=positions,
+        total_daily_debt_service=total_daily,
+        total_monthly_debt_service=total_monthly,
+        stacking_burden_pct=enrichment.get("stacking_burden_pct"),
+        dscr=enrichment.get("dscr"),
+        lien_flags=list(enrichment.get("lien_flags") or []),
+    )
+
+
+def _build_validation(validation_obj: Any) -> Validation:
+    if validation_obj is None:
+        return Validation()
+    return Validation(
+        balance_check=validation_obj.balance_check,
+        expected_ending=validation_obj.expected_ending,
+        actual_ending=validation_obj.actual_ending,
+        discrepancy=validation_obj.discrepancy,
+    )
+
+
+# ─── Per-category confidence aggregator ─────────────────────────────────────
+
+
+def _is_populated(value: Any) -> bool:
+    """Source-population check.
+
+    None, empty list/dict/str → not populated.
+    Numeric 0 → populated (we never inject zeros as defaults; the namespace
+    builders use None for unimplemented numeric fields, so a real 0 from the
+    source is still real data).
+    """
+    if value is None:
+        return False
+    if isinstance(value, (list, dict, str)) and len(value) == 0:
+        return False
+    return True
+
+
+def _compute_by_category(
+    parsed_data: dict,
+    enrichment: dict | None,
+    template_match: float,
+    text_quality: float,
+) -> ByCategory:
+    """Per-category confidence.
+
+    Formula: by_category[c] = field_population_ratio(c) * sqrt(text_quality * template_match)
+
+    Geometric mean of text_quality and template_match penalizes weakness in
+    either signal more than a flat average would, while staying in [0,1].
+    Phase 0's job is shape stability — this formula will evolve as later
+    phases populate currently-null fields.
+    """
+    derived = parsed_data.get("derived_metrics") or {}
+    enr = enrichment or {}
+
+    cash_flow_sources = [
+        parsed_data.get("beginning_balance"),
+        parsed_data.get("ending_balance"),
+        parsed_data.get("total_deposits"),       # → total_inflows
+        parsed_data.get("total_withdrawals"),    # → total_outflows
+        derived.get("daily_ending_balances"),    # → daily_balances + min_balance(_date)
+        derived.get("negative_balance_days"),
+        parsed_data.get("nsf_count"),
+        parsed_data.get("average_daily_balance"),
+        None,                                    # overdraft_events: no extractor yet
+    ]
+
+    revenue_sources = [
+        parsed_data.get("total_deposits"),       # → gross_deposits
+        parsed_data.get("deposit_count"),
+        None,                                    # processor_deposits
+        None,                                    # non_processor_inflows
+        None,                                    # recurring_revenue_estimate
+        None,                                    # chargebacks
+        None,                                    # concentration
+        None,                                    # seasonality_signal
+    ]
+
+    debt_sources = [
+        enr.get("active_mca_positions"),
+        enr.get("total_daily_debits"),
+        enr.get("stacking_burden_pct"),
+        enr.get("dscr"),
+        enr.get("lien_flags"),
+    ]
+
+    expenses_sources = [None] * 6  # payroll, rent, utilities, insurance, software, taxes
+
+    identity_sources = [
+        parsed_data.get("account_holder"),
+        parsed_data.get("account_number_last4"),
+        None,                                    # business_name
+        None,                                    # address
+        None,                                    # ein
+        None,                                    # consistency_check
+    ]
+
+    quality_factor = math.sqrt(max(0.0, text_quality) * max(0.0, template_match))
+
+    def ratio(sources: list) -> float:
+        if not sources:
+            return 0.0
+        populated = sum(1 for s in sources if _is_populated(s))
+        return populated / len(sources)
+
+    return ByCategory(
+        cash_flow=round(ratio(cash_flow_sources) * quality_factor, 3),
+        revenue=round(ratio(revenue_sources) * quality_factor, 3),
+        debt=round(ratio(debt_sources) * quality_factor, 3),
+        expenses=round(ratio(expenses_sources) * quality_factor, 3),
+        identity=round(ratio(identity_sources) * quality_factor, 3),
+    )
