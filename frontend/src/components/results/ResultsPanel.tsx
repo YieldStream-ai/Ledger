@@ -4,21 +4,19 @@ import { SummaryTab } from "./SummaryTab";
 import { RawTextTab } from "./RawTextTab";
 import { TablesTab } from "./TablesTab";
 import { TierLogsTab } from "./TierLogsTab";
-import { EnrichmentTab } from "./EnrichmentTab";
 import type { ParseResponse } from "../../api/types";
 
 interface ResultsPanelProps {
   result: ParseResponse;
 }
 
-const TABS = ["Summary", "Raw Text", "Tables", "Tier Logs", "Enrichment"] as const;
+const TABS = ["Summary", "Raw Text", "Tables", "Tier Logs"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ResultsPanel({ result }: ResultsPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Summary");
 
   const availableTabs = TABS.filter((tab) => {
-    if (tab === "Enrichment") return result.enrichment != null;
     if (tab === "Tables") return result.tables.length > 0;
     return true;
   });
@@ -49,9 +47,6 @@ export function ResultsPanel({ result }: ResultsPanelProps) {
         {activeTab === "Raw Text" && <RawTextTab text={result.text_content} />}
         {activeTab === "Tables" && <TablesTab tables={result.tables} />}
         {activeTab === "Tier Logs" && <TierLogsTab logs={result.tier_logs} />}
-        {activeTab === "Enrichment" && result.enrichment && (
-          <EnrichmentTab data={result.enrichment} />
-        )}
       </div>
     </div>
   );
