@@ -52,8 +52,8 @@ export function Nav() {
           >
             Sign in
           </a>
-          <Button href="/signup" size="sm">
-            Create account
+          <Button href="/signup" variant="secondary" size="sm">
+            TRY FOR FREE
           </Button>
         </div>
 
@@ -86,7 +86,7 @@ export function Nav() {
               Sign in
             </a>
             <Button href="/signup" size="sm">
-              Create account
+              TRY FOR FREE
             </Button>
           </nav>
         </div>

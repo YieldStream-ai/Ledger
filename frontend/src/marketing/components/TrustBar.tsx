@@ -3,7 +3,7 @@ import { trustBar } from '../content'
 
 export function TrustBar() {
   return (
-    <section className="border-y border-[var(--border)] py-8">
+    <section className="border-y border-[var(--border)] py-16 md:py-20">
       <Container>
         <div className="flex flex-col items-center justify-center gap-8 md:flex-row md:gap-16">
           {trustBar.metrics.map((metric) => (
