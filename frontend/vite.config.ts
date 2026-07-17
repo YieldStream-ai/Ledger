@@ -3,7 +3,7 @@ import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const apiTarget = process.env.VITE_API_URL || 'http://localhost:8100'
+const apiTarget = process.env.API_TARGET || 'http://localhost:8100'
 
 /**
  * Rewrites /app and /app/* requests to serve app.html,
