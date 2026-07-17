@@ -13,7 +13,7 @@ export const hero = {
   headline: "Structured financial data from any bank statement.",
   subheadline:
     "Bank statements in. Decision-ready data out. Production-grade extraction with balance reconciliation, 25+ risk indicators, and multiple templates — built for fintechs that underwrite at scale.",
-  primaryCTA: { label: "Create account", href: "/signup" },
+  primaryCTA: { label: "Try the demo", href: "/app" },
   secondaryCTA: { label: "Read the docs", href: "/docs" },
   curlExample:
     'curl -X POST api.ledger.yieldstream.io/v1/parse \\\n  -H "Authorization: Bearer $LEDGER_API_KEY" \\\n  -F file=@statement.pdf',
@@ -464,7 +464,7 @@ export const pricing = {
         "Balance validation",
         "Confidence scoring",
       ],
-      cta: { label: "Create account", href: "/signup" },
+      cta: { label: "Try the demo", href: "/app" },
       highlighted: false,
     },
     {
@@ -479,7 +479,7 @@ export const pricing = {
         "Email support",
         "Multi-file stitching",
       ],
-      cta: { label: "Create account", href: "/signup" },
+      cta: { label: "Try the demo", href: "/app" },
       highlighted: true,
     },
     {
@@ -503,7 +503,7 @@ export const pricing = {
 export const finalCTA = {
   headline: "Start parsing in five minutes.",
   subheadline: "Free to try. No credit card. 100 parses on the house.",
-  primaryCTA: { label: "Create account", href: "/signup" },
+  primaryCTA: { label: "Try the demo", href: "/app" },
   secondaryCTA: { label: "Read the docs", href: "/docs" },
   installLine: "npm install @yieldstream/ledger",
 };
