@@ -135,7 +135,7 @@ export function ParsePage() {
             bankNames={templateBankNames}
             sortBy={templateSortBy}
             onSortByChange={setTemplateSortBy}
-            onRegisterNew={() => {/* TODO */}}
+            onRegisterNew={() => alert("Template registration is coming soon.")}
           />
         );
       default:
