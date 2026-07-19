@@ -46,12 +46,6 @@ export function Nav() {
 
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href="/app"
-            className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Sign in
-          </a>
           <Button href="/app" variant="secondary" size="sm">
             TRY FOR FREE
           </Button>
@@ -82,9 +76,6 @@ export function Nav() {
               </a>
             ))}
             <hr className="border-[var(--border)]" />
-            <a href="/app" className="text-sm text-[var(--text-secondary)]">
-              Sign in
-            </a>
             <Button href="/app" size="sm">
               TRY FOR FREE
             </Button>
