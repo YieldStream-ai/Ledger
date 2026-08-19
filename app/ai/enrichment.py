@@ -1,8 +1,9 @@
 """
 AI Enrichment — Gemini-powered financial analysis of bank statements.
 
-Takes raw OCR-extracted text and produces 25+ structured financial intelligence
-fields for MCA underwriting evaluation.
+Takes raw OCR-extracted text and produces structured financial intelligence
+fields for MCA underwriting evaluation that go beyond what the deterministic
+parsers extract (revenue trends, stacking detection, DSCR, risk flags).
 
 Uses google-generativeai SDK (same dependency as gemini_fallback.py).
 """
@@ -69,16 +70,13 @@ class BankIntelligenceResult(BaseModel):
     revenue_volatility: float | None = None
     best_month_revenue: float | None = None
     worst_month_revenue: float | None = None
-    average_daily_balance: float | None = None
     lowest_daily_balance: float | None = None
     ending_daily_balance: float | None = None
     edb_trend: str = "flat"  # growing | flat | depleting
     days_below_threshold: int = 0
-    negative_days_count: int = 0
     nsf_count_30d: int = 0
     nsf_count_60d: int = 0
     nsf_count_90d: int = 0
-    deposit_count: int | None = None
     avg_transaction_size: float | None = None
     active_mca_positions: list[McaPosition] = []
     total_daily_debits: float = 0
@@ -137,15 +135,14 @@ BANK STATEMENT DATA (OCR-extracted markdown):
 
 ANALYSIS TASKS:
 1. Revenue: Calculate monthly averages, trend (growing/stable/declining), volatility (0-1 scale), best/worst months
-2. Cash Flow: Average daily balance, lowest balance, ending daily balance (last day's closing balance), EDB trend over the period (growing/flat/depleting)
-3. Negative Days: Count days where balance dropped below $0 (distinct from NSFs)
-4. Red Flags: Count NSF fees in 30/60/90 day windows
-5. Deposit Analysis: Count total number of individual deposit transactions (not the sum — the count), calculate average deposit transaction size
-6. Stacking/MCA: Identify recurring daily/weekly ACH debits to funding companies, extract lender names and amounts, calculate DSCR = monthly_revenue_avg / (total_daily_debits * 30)
-7. Lien Flags: Scan withdrawal descriptions for keywords: "IRS", "State Tax", "Tax Lien", "Levy", "Garnishment" — return matching descriptions as array
-8. Transfer Flags: Identify large transfers (>$10K) to personal accounts or labeled "inter-company", "transfer", "owner draw" — return {{description, amount}} objects
-9. Anomalies: Flag large unexplained withdrawals, revenue drops >30%, unusual patterns
-10. Confidence: Assess OCR quality and data completeness (0-1 scale), flag for human review if <0.80
+2. Cash Flow: Lowest balance, ending daily balance (last day's closing balance), EDB trend over the period (growing/flat/depleting)
+3. Red Flags: Count NSF fees in 30/60/90 day windows
+4. Deposit Analysis: Calculate average deposit transaction size
+5. Stacking/MCA: Identify recurring daily/weekly ACH debits to funding companies, extract lender names and amounts, calculate DSCR = monthly_revenue_avg / (total_daily_debits * 30)
+6. Lien Flags: Scan withdrawal descriptions for keywords: "IRS", "State Tax", "Tax Lien", "Levy", "Garnishment" — return matching descriptions as array
+7. Transfer Flags: Identify large transfers (>$10K) to personal accounts or labeled "inter-company", "transfer", "owner draw" — return {{description, amount}} objects
+8. Anomalies: Flag large unexplained withdrawals, revenue drops >30%, unusual patterns
+9. Confidence: Assess OCR quality and data completeness (0-1 scale), flag for human review if <0.80
 
 RESPOND ONLY WITH VALID JSON (no markdown fences, no explanation):
 {{
@@ -154,16 +151,13 @@ RESPOND ONLY WITH VALID JSON (no markdown fences, no explanation):
   "revenue_volatility": number | null,
   "best_month_revenue": number | null,
   "worst_month_revenue": number | null,
-  "average_daily_balance": number | null,
   "lowest_daily_balance": number | null,
   "ending_daily_balance": number | null,
   "edb_trend": "growing" | "flat" | "depleting",
   "days_below_threshold": number,
-  "negative_days_count": number,
   "nsf_count_30d": number,
   "nsf_count_60d": number,
   "nsf_count_90d": number,
-  "deposit_count": number | null,
   "avg_transaction_size": number | null,
   "active_mca_positions": [{{"lender_name": string, "daily_debit": number, "estimated_balance": number}}],
   "total_daily_debits": number,
