@@ -46,14 +46,8 @@ export function Nav() {
 
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href="/signin"
-            className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Sign in
-          </a>
-          <Button href="/signup" size="sm">
-            Create account
+          <Button href="/app" variant="secondary" size="sm">
+            TRY FOR FREE
           </Button>
         </div>
 
@@ -82,11 +76,8 @@ export function Nav() {
               </a>
             ))}
             <hr className="border-[var(--border)]" />
-            <a href="/signin" className="text-sm text-[var(--text-secondary)]">
-              Sign in
-            </a>
-            <Button href="/signup" size="sm">
-              Create account
+            <Button href="/app" size="sm">
+              TRY FOR FREE
             </Button>
           </nav>
         </div>

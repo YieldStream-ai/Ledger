@@ -17,10 +17,10 @@ export function LandingPage() {
       <Nav />
       <main>
         <Hero />
+        <TemplateCoverage />
         <TrustBar />
         <FeaturesGrid />
         <HowItWorks />
-        <TemplateCoverage />
         <AccuracyMetrics />
         <ComparisonTable />
         <UseCases />

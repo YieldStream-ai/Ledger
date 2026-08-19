@@ -384,7 +384,7 @@ def quick_metadata_check(file_bytes: bytes) -> tuple[bool, str | None]:
     """Quick metadata-only check (<5ms). Returns (passed, reason)."""
     size_kb = len(file_bytes) / 1024
 
-    if size_kb < 30:
+    if size_kb < 5:
         return False, "File too small to contain readable document data."
 
     if size_kb > 50_000:
