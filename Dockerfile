@@ -7,6 +7,6 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir . mangum
 
 COPY app/ ${LAMBDA_TASK_ROOT}/app/
-COPY lambda_handler.py ${LAMBDA_TASK_ROOT}/
+COPY lambda_handler.py worker_handler.py ${LAMBDA_TASK_ROOT}/
 
 CMD ["lambda_handler.handler"]

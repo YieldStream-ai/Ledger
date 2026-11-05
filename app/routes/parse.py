@@ -83,7 +83,7 @@ async def parse_document(request: ParseRequest):
             processing_time_ms=_elapsed(start),
         )
 
-    return _process_pdf(
+    return process_pdf(
         pdf_bytes,
         request.file_name,
         request.document_type_hint,
@@ -107,7 +107,7 @@ async def parse_upload(
     """Accept PDF as multipart upload."""
     start = time.time()
     pdf_bytes = await file.read()
-    return _process_pdf(
+    return process_pdf(
         pdf_bytes,
         file.filename or "document.pdf",
         document_type_hint,
@@ -119,7 +119,7 @@ async def parse_upload(
     )
 
 
-def _process_pdf(
+def process_pdf(
     pdf_bytes: bytes,
     file_name: str,
     document_type_hint: str | None,

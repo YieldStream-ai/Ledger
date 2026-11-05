@@ -182,3 +182,45 @@ Position: Yellowstone Capital - $500/day
 Landlord: ABC Properties
 Monthly Rent: $4,500
 """
+
+
+# ─── Async job pipeline (moto-mocked AWS) ─────────────────────────────────────
+
+JOBS_BUCKET = "test-ledger-jobs"
+JOBS_TABLE = "test-ledger-jobs"
+
+
+@pytest.fixture
+def jobs_aws(monkeypatch):
+    """Mocked S3 bucket + DynamoDB table wired into app settings."""
+    import boto3
+    from moto import mock_aws
+
+    from app.config import settings
+    from app.jobs import store
+
+    for var, value in {
+        "AWS_ACCESS_KEY_ID": "testing",
+        "AWS_SECRET_ACCESS_KEY": "testing",
+        "AWS_SESSION_TOKEN": "testing",
+        "AWS_DEFAULT_REGION": "us-west-2",
+    }.items():
+        monkeypatch.setenv(var, value)
+    monkeypatch.setattr(settings, "aws_region", "us-west-2")
+    monkeypatch.setattr(settings, "jobs_bucket", JOBS_BUCKET)
+    monkeypatch.setattr(settings, "jobs_table", JOBS_TABLE)
+
+    store.reset_clients()
+    with mock_aws():
+        boto3.client("s3", region_name="us-west-2").create_bucket(
+            Bucket=JOBS_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
+        )
+        boto3.client("dynamodb", region_name="us-west-2").create_table(
+            TableName=JOBS_TABLE,
+            KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield store
+    store.reset_clients()
