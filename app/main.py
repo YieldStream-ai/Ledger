@@ -8,6 +8,7 @@ from app.routes.approval import router as approval_router
 from app.routes.enrich import router as enrich_router
 from app.routes.review import router as review_router
 from app.routes.templates import router as templates_router
+from app.routes.jobs import router as jobs_router
 
 app = FastAPI(
     title="YieldStream Qualify",
@@ -29,3 +30,4 @@ app.include_router(approval_router)
 app.include_router(enrich_router)
 app.include_router(review_router)
 app.include_router(templates_router)
+app.include_router(jobs_router)
