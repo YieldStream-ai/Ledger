@@ -345,11 +345,21 @@ docker run -p 8100:8100 --env-file .env yieldstream-ledger-local
 
 ## Deploy to AWS
 
-Infrastructure is fully managed with Terraform:
+Infrastructure is fully managed with Terraform. State lives in S3 (versioned, encrypted, with
+S3-native locking) rather than on one machine, so any machine or CI runner can plan and apply safely.
+
+One-time setup — create the state bucket (this tiny config keeps local state):
+
+```bash
+cd infra/bootstrap
+terraform init && terraform apply
+```
+
+Then the main stack:
 
 ```bash
 cd infra
-terraform init
+terraform init        # add -migrate-state once to move an existing local state into S3
 terraform apply \
   -var="google_ai_api_key=$GOOGLE_AI_API_KEY" \
   -var="llama_cloud_api_key=$LLAMA_CLOUD_API_KEY"
