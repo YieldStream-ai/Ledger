@@ -19,7 +19,28 @@ output "deploy_commands" {
     docker tag ${var.app_name}:latest ${aws_ecr_repository.app.repository_url}:latest
     docker push ${aws_ecr_repository.app.repository_url}:latest
 
-    # Update Lambda to use new image
+    # Update both Lambdas (API + async worker) to use the new image
     aws lambda update-function-code --function-name ${var.app_name} --image-uri ${aws_ecr_repository.app.repository_url}:latest --region ${var.aws_region}
+    aws lambda update-function-code --function-name ${aws_lambda_function.worker.function_name} --image-uri ${aws_ecr_repository.app.repository_url}:latest --region ${var.aws_region}
   EOT
+}
+
+output "jobs_bucket" {
+  description = "S3 bucket for async job uploads/results"
+  value       = aws_s3_bucket.jobs.bucket
+}
+
+output "jobs_table" {
+  description = "DynamoDB table holding async job state"
+  value       = aws_dynamodb_table.jobs.name
+}
+
+output "jobs_queue_url" {
+  description = "SQS queue feeding the worker Lambda"
+  value       = aws_sqs_queue.jobs.id
+}
+
+output "jobs_dlq_url" {
+  description = "Dead-letter queue — messages here failed 3 times"
+  value       = aws_sqs_queue.jobs_dlq.id
 }

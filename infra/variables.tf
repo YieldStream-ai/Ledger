@@ -27,6 +27,12 @@ variable "llama_cloud_api_key" {
   default     = ""
 }
 
+variable "frontend_origins" {
+  description = "Origins allowed to upload to the jobs bucket via presigned POST (S3 CORS)"
+  type        = list(string)
+  default     = ["*"]
+}
+
 # Fargate vars — only needed if you uncomment Fargate in main.tf
 # variable "cpu" {
 #   default = 256
