@@ -106,6 +106,7 @@ POST /parse/upload
 | **PDF Extraction** | pdfplumber, PyMuPDF, Tesseract OCR, LlamaParse | Cascading tiers balance speed, cost, and document quality |
 | **AI/LLM** | Google Gemini 2.0 Flash Lite | Classification fallback + financial enrichment with token-bucket rate limiting |
 | **Infrastructure** | AWS Lambda (512 MB), API Gateway v2, ECR, CloudWatch | Serverless — scales to zero, pay-per-invocation |
+| **Async Pipeline** | S3, SQS + DLQ, DynamoDB, worker Lambda | Event-driven ingestion for large documents beyond API Gateway's limits |
 | **IaC** | Terraform | Reproducible infrastructure, version-controlled state |
 | **Testing** | pytest, pytest-asyncio, reportlab | Synthetic PDF generation for deterministic test fixtures |
 | **Containerization** | Docker, docker-compose | Lambda-compatible images + local dev parity |
@@ -175,6 +176,8 @@ curl -X POST https://your-api.com/parse/upload \
 | `GET` | `/health` | Extractor availability check |
 | `POST` | `/parse` | Parse document from URL |
 | `POST` | `/parse/upload` | Parse uploaded file (multipart) |
+| `POST` | `/jobs` | Create an async parse job + presigned S3 upload |
+| `GET` | `/jobs/{job_id}` | Async job status (includes result when `COMPLETED`) |
 | `POST` | `/classify` | Classify document type only |
 | `POST` | `/extract-approval` | MCA approval letter terms (upload) |
 | `POST` | `/extract-approval/url` | MCA approval letter terms (URL) |
@@ -183,6 +186,43 @@ curl -X POST https://your-api.com/parse/upload \
 | `GET` | `/templates/bank` | Bank template metadata |
 
 > Interactive API docs available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when running locally.
+
+### Async Ingestion
+
+`POST /parse/upload` is synchronous, which caps it at API Gateway's ~30s integration timeout and Lambda's 6 MB request payload. Long scanned statements that need OCR or LlamaParse can exceed both. The async path removes those limits: the client uploads straight to S3 and a queue-driven worker runs the same pipeline.
+
+```
+POST /jobs ──► DynamoDB {job_id, status: PENDING_UPLOAD, options}
+     └──────► presigned S3 POST (uploads/{job_id}.pdf · PDF only · ≤ 20 MB · 15 min)
+
+client ──► S3 uploads/{job_id}.pdf
+             │ ObjectCreated
+             ▼
+           SQS ──(3 failed receives)──► DLQ ──► CloudWatch alarm
+             │ batch_size 1 · max 5 concurrent
+             ▼
+         worker Lambda
+             ├─ claim job  (conditional PENDING_UPLOAD → PROCESSING)
+             ├─ process_pdf()  — same pipeline as /parse
+             ├─ S3 results/{job_id}.json
+             └─ DynamoDB status → COMPLETED | FAILED
+
+GET /jobs/{job_id} ──► status, timing, error — and the full ParseResponse once COMPLETED
+```
+
+```bash
+# 1. Create the job
+JOB=$(curl -s -X POST $API/jobs -H 'Content-Type: application/json' \
+  -d '{"file_name": "statement.pdf", "include_enrichment": true}')
+
+# 2. Upload to S3: multipart POST to .upload.url with every key in .upload.fields,
+#    then the PDF as `file` (S3 requires the policy fields before the file)
+
+# 3. Poll
+curl -s $API/jobs/$(echo $JOB | jq -r .job_id)
+```
+
+Or run the end-to-end check: `make smoke PDF=statement.pdf`.
 
 ---
 
@@ -230,7 +270,8 @@ When `include_enrichment=true`, the API computes **25+ financial indicators** vi
 
 ```
 app/
-├── routes/              # 7 FastAPI routers (parse, classify, enrich, review, templates...)
+├── routes/              # 8 FastAPI routers (parse, jobs, classify, enrich, review, templates...)
+├── jobs/                # Async job store (DynamoDB state, S3 uploads/results)
 ├── extraction/          # 4-tier cascading PDF extraction orchestrator
 ├── classification/      # Document type identification (keyword + structural + LLM)
 ├── parsers/
@@ -249,8 +290,10 @@ frontend/
 │   ├── api/             # Axios client + TypeScript interfaces
 │   └── hooks/           # Health check polling
 
-tests/                   # pytest suite with synthetic PDF fixtures (reportlab)
-infra/                   # Terraform — Lambda, API Gateway, ECR, CloudWatch, IAM
+tests/                   # pytest suite — synthetic PDFs (reportlab), mocked AWS (moto)
+infra/                   # Terraform — Lambda, API Gateway, ECR, CloudWatch, IAM, async jobs (jobs.tf)
+worker_handler.py        # SQS-triggered worker Lambda entry point
+scripts/smoke_async.py   # End-to-end check of the deployed async pipeline
 ```
 
 ---
@@ -312,19 +355,16 @@ terraform apply \
   -var="llama_cloud_api_key=$LLAMA_CLOUD_API_KEY"
 ```
 
-Build, push, and deploy:
+Build the image (linux/amd64), push it to ECR, and point both Lambdas — the API and the async worker — at it:
 
 ```bash
-make build
-aws ecr get-login-password --region us-west-2 | \
-  docker login --username AWS --password-stdin <ECR_URL>
-docker tag yieldstream-qualify:latest <ECR_URL>:latest
-docker push <ECR_URL>:latest
-
-aws lambda update-function-code \
-  --function-name yieldstream-qualify \
-  --image-uri <ECR_URL>:latest
+make deploy-image
+make smoke PDF=path/to/statement.pdf   # end-to-end check of the async pipeline
 ```
+
+> On the very first apply the Lambdas need an image in ECR before they can be created. Bootstrap with
+> `terraform apply -target=aws_ecr_repository.app`, then `make deploy-image` (the `update-function-code`
+> steps will fail harmlessly), then a full `terraform apply`.
 
 ---
 
@@ -341,6 +381,13 @@ Structured financial documents have predictable formats. Regex extraction is fas
 
 ### Quality Gate Before Extraction
 Rejecting a blurry photo early saves 5-10 seconds of extraction time and prevents returning garbage data with false confidence. The gate checks blur, skew, contrast, resolution, and corner cropping using PIL + NumPy.
+
+### Async Ingestion: S3 → SQS → Lambda
+- **SQS between S3 and the worker**, rather than invoking Lambda directly from S3: retries with backoff, a dead-letter queue for poison documents, and a concurrency cap (5) that keeps parallel Gemini calls under the rate limit.
+- **Idempotent claim.** SQS is at-least-once, so the worker claims each job with a conditional DynamoDB update (`PENDING_UPLOAD → PROCESSING`); duplicate deliveries are skipped. On an unexpected crash the job is released and only that message is reported in `batchItemFailures`.
+- **Business failures aren't retried.** A quality-gate rejection marks the job `FAILED` immediately; only infrastructure errors go back to the queue.
+- **Results in S3, state in DynamoDB.** A full ParseResponse can exceed DynamoDB's 400 KB item limit, so the table holds status/timing and S3 holds the payload. Both expire automatically (TTL / lifecycle rules).
+- **Least privilege.** Separate IAM roles: the API can only write `uploads/*` (to sign presigned POSTs) and read `results/*`; the worker can only read `uploads/*` and write `results/*`.
 
 ### Confidence Scoring Throughout
 Every pipeline stage reports a confidence score (0-1). The final response aggregates text quality, table extraction, and template match confidence into an overall score. Documents below 0.85 are automatically flagged with `needs_human_review: true`.
