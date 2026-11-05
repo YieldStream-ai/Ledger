@@ -14,7 +14,7 @@ output "deploy_commands" {
     # Authenticate Docker with ECR
     aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.app.repository_url}
 
-    # Build and push (run from YieldStream-Qualify root)
+    # Build and push (run from the Ledger repo root)
     docker build -t ${var.app_name} .
     docker tag ${var.app_name}:latest ${aws_ecr_repository.app.repository_url}:latest
     docker push ${aws_ecr_repository.app.repository_url}:latest

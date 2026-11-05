@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "app_name" {
   description = "Application name"
-  default     = "yieldstream-qualify"
+  default     = "yieldstream-ledger"
 }
 
 variable "container_port" {
