@@ -220,6 +220,10 @@ resource "aws_lambda_function" "worker" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [image_uri] # deployed by CI, see main.tf
+  }
+
   depends_on = [aws_cloudwatch_log_group.worker]
 }
 

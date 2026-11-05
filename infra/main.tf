@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.10"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -22,6 +22,19 @@ resource "aws_ecr_repository" "app" {
   image_scanning_configuration {
     scan_on_push = true
   }
+}
+
+# Every CI deploy pushes a SHA-tagged image; keep the last 15 for rollbacks
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep the 15 most recent images"
+      selection    = { tagStatus = "any", countType = "imageCountMoreThan", countNumber = 15 }
+      action       = { type = "expire" }
+    }]
+  })
 }
 
 # ─── IAM Role for Lambda ─────────────────────────────────────────────────────
@@ -72,6 +85,12 @@ resource "aws_lambda_function" "app" {
     }
   }
 
+  # CI deploys a new image per commit (tagged with the git SHA) via update-function-code.
+  # Terraform owns the function's configuration, not which image version is live.
+  lifecycle {
+    ignore_changes = [image_uri]
+  }
+
   depends_on = [aws_cloudwatch_log_group.lambda]
 }
 
@@ -101,8 +120,8 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
 
   default_route_settings {
-    throttling_burst_limit = 10  # max concurrent requests
-    throttling_rate_limit  = 5   # requests per second sustained
+    throttling_burst_limit = 10 # max concurrent requests
+    throttling_rate_limit  = 5  # requests per second sustained
   }
 }
 

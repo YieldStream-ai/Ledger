@@ -345,11 +345,21 @@ docker run -p 8100:8100 --env-file .env yieldstream-ledger-local
 
 ## Deploy to AWS
 
-Infrastructure is fully managed with Terraform:
+Infrastructure is fully managed with Terraform. State lives in S3 (versioned, encrypted, with
+S3-native locking) rather than on one machine, so any machine or CI runner can plan and apply safely.
+
+One-time setup — create the state bucket (this tiny config keeps local state):
+
+```bash
+cd infra/bootstrap
+terraform init && terraform apply
+```
+
+Then the main stack:
 
 ```bash
 cd infra
-terraform init
+terraform init        # add -migrate-state once to move an existing local state into S3
 terraform apply \
   -var="google_ai_api_key=$GOOGLE_AI_API_KEY" \
   -var="llama_cloud_api_key=$LLAMA_CLOUD_API_KEY"
@@ -365,6 +375,34 @@ make smoke PDF=path/to/statement.pdf   # end-to-end check of the async pipeline
 > On the very first apply the Lambdas need an image in ECR before they can be created. Bootstrap with
 > `terraform apply -target=aws_ecr_repository.app`, then `make deploy-image` (the `update-function-code`
 > steps will fail harmlessly), then a full `terraform apply`.
+
+### CI/CD (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every PR and every push to `main`:
+
+| Job | When | What |
+|---|---|---|
+| `test` | PRs + main | `pytest` (AWS mocked with moto) |
+| `terraform-check` | PRs + main | `terraform fmt -check`, `validate` (no AWS access) |
+| `deploy` | main only | `terraform apply` → build image tagged with the git SHA → push to ECR → update both Lambdas → `/health` check |
+
+AWS access uses **GitHub OIDC**, so no AWS keys are stored in GitHub. The deploy job gets temporary
+credentials on `yieldstream-ledger-github-deploy` (defined in `infra/ci.tf`), and that role only trusts
+jobs running in the repo's `production` environment, so PRs and forks can never reach AWS.
+Terraform owns the Lambda configuration; CI owns which image is live (`ignore_changes = [image_uri]`),
+and ECR keeps the last 15 images for rollbacks.
+
+One-time setup, after `terraform apply` has created the role:
+
+```bash
+gh api -X PUT repos/YieldStream-ai/Ledger/environments/production
+gh variable set AWS_DEPLOY_ROLE_ARN --env production --body "$(terraform -chdir=infra output -raw github_deploy_role_arn)"
+gh secret set GOOGLE_AI_API_KEY --env production     # prompts for the value
+gh secret set LLAMA_CLOUD_API_KEY --env production
+```
+
+Optional: add yourself as a required reviewer on the `production` environment (repo Settings →
+Environments) to turn every deploy into a manual approval.
 
 ---
 

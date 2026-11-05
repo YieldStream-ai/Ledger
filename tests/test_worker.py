@@ -180,7 +180,16 @@ def _statement_pdf(pages: int) -> bytes:
 
 def test_real_pipeline_rejects_tiny_pdf(jobs_aws):
     """No stub: the real quality gate rejects a near-empty PDF and the job is FAILED."""
-    job_id = _uploaded_job(jobs_aws, body=_statement_pdf(pages=1), file_name="tiny.pdf")
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf)
+    c.drawString(72, 720, "Statement")
+    c.save()
+    pdf = buf.getvalue()
+    assert len(pdf) < 5 * 1024  # below the quality gate's minimum size
+
+    job_id = _uploaded_job(jobs_aws, body=pdf, file_name="tiny.pdf")
 
     assert worker_handler.handler(_sqs_event(jobs_aws.upload_key(job_id))) == {"batchItemFailures": []}
 
