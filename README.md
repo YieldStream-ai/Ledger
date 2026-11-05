@@ -26,7 +26,7 @@
 
 MCA underwriters manually review hundreds of bank statements and tax documents per week. Each review means opening PDFs, pulling numbers into spreadsheets, and computing metrics like average daily balance, NSF frequency, and existing MCA stacking burden.
 
-**YieldStream Qualify reduces that to a single API call.** Upload a document, get back structured data with confidence scores and risk flags — ready for decisioning.
+**YieldStream Ledger reduces that to a single API call.** Upload a document, get back structured data with confidence scores and risk flags — ready for decisioning.
 
 ---
 
@@ -338,7 +338,7 @@ make test             # pytest suite
 
 ```bash
 make build-local
-docker run -p 8100:8100 --env-file .env yieldstream-qualify-local
+docker run -p 8100:8100 --env-file .env yieldstream-ledger-local
 ```
 
 ---

@@ -11,7 +11,7 @@ from app.routes.templates import router as templates_router
 from app.routes.jobs import router as jobs_router
 
 app = FastAPI(
-    title="YieldStream Qualify",
+    title="YieldStream Ledger",
     version="0.1.0",
     description="Document parsing and financial intelligence API — extract structured data from bank statements, tax returns, and MCA applications.",
 )

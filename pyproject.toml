@@ -1,5 +1,5 @@
 [project]
-name = "yieldstream-qualify"
+name = "yieldstream-ledger"
 version = "0.1.0"
 description = "Standalone document parsing and financial intelligence API"
 requires-python = ">=3.11"
