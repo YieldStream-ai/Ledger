@@ -77,7 +77,7 @@ POST /parse/upload
    │ Enrichment Engine │
    │                   │
    │ 25+ risk metrics  │
-   │ Gemini 2.0 Flash  │
+   │ Gemini Flash-Lite │
    │ 15 RPM rate limit │
    └──────────────────┘
             │
@@ -104,7 +104,7 @@ POST /parse/upload
 | **Backend** | Python 3.12, FastAPI, Pydantic v2 | Async-first, schema-driven validation, auto-generated OpenAPI docs |
 | **Frontend** | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 | Modern SPA with TanStack Query for server state |
 | **PDF Extraction** | pdfplumber, PyMuPDF, Tesseract OCR, LlamaParse | Cascading tiers balance speed, cost, and document quality |
-| **AI/LLM** | Google Gemini 2.0 Flash Lite | Classification fallback + financial enrichment with token-bucket rate limiting |
+| **AI/LLM** | Google Gemini 3.5 Flash-Lite (configurable via `GEMINI_MODEL`) | Classification fallback + financial enrichment with token-bucket rate limiting |
 | **Infrastructure** | AWS Lambda (512 MB), API Gateway v2, ECR, CloudWatch | Serverless — scales to zero, pay-per-invocation |
 | **Async Pipeline** | S3, SQS + DLQ, DynamoDB, worker Lambda | Event-driven ingestion for large documents beyond API Gateway's limits |
 | **IaC** | Terraform | Reproducible infrastructure, version-controlled state |

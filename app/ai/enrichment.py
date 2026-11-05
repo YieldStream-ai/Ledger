@@ -121,7 +121,7 @@ def enrich_bank_statement(
     import google.generativeai as genai
 
     genai.configure(api_key=settings.google_ai_api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash-lite")
+    model = genai.GenerativeModel(settings.gemini_model)
 
     _acquire_token()
 

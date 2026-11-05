@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     log_level: str = "info"
     google_ai_api_key: str = ""
     llama_cloud_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash-lite"
     # Minimum chars of extracted text before falling to next extractor
     min_text_threshold: int = 100
 
