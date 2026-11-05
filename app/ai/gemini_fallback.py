@@ -16,7 +16,7 @@ from app.models.responses import ClassificationResult
 
 logger = logging.getLogger(__name__)
 
-# Approximate cost per token for gemini-2.0-flash-lite (free tier has limits)
+# Approximate cost per token for the configured Gemini model (free tier has limits)
 _COST_PER_INPUT_TOKEN = 0.0  # Free tier — update when on paid plan
 _COST_PER_OUTPUT_TOKEN = 0.0
 
@@ -82,7 +82,7 @@ def classify_document(text: str) -> ClassificationResult | None:
     try:
         import google.generativeai as genai
         genai.configure(api_key=settings.google_ai_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        model = genai.GenerativeModel(settings.gemini_model)
 
         prompt = f"""Classify this document into exactly one of these types:
 - bank_statement
@@ -131,7 +131,7 @@ def extract_approval_letter_gemini(text: str) -> dict | None:
     try:
         import google.generativeai as genai
         genai.configure(api_key=settings.google_ai_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        model = genai.GenerativeModel(settings.gemini_model)
 
         prompt = f"""Extract structured offer terms from this MCA (Merchant Cash Advance) approval letter. Return JSON only, no markdown fences.
 
@@ -183,7 +183,7 @@ def extract_bank_statement_gemini(text: str) -> dict | None:
     try:
         import google.generativeai as genai
         genai.configure(api_key=settings.google_ai_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        model = genai.GenerativeModel(settings.gemini_model)
 
         prompt = f"""Extract ALL structured data from this bank statement. Return JSON only, no markdown fences.
 

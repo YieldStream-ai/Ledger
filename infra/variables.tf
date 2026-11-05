@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "app_name" {
   description = "Application name"
-  default     = "yieldstream-qualify"
+  default     = "yieldstream-ledger"
 }
 
 variable "container_port" {
@@ -25,6 +25,12 @@ variable "llama_cloud_api_key" {
   type        = string
   sensitive   = true
   default     = ""
+}
+
+variable "frontend_origins" {
+  description = "Origins allowed to upload to the jobs bucket via presigned POST (S3 CORS)"
+  type        = list(string)
+  default     = ["*"]
 }
 
 # Fargate vars — only needed if you uncomment Fargate in main.tf

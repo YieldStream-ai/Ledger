@@ -67,6 +67,8 @@ resource "aws_lambda_function" "app" {
     variables = {
       GOOGLE_AI_API_KEY   = var.google_ai_api_key
       LLAMA_CLOUD_API_KEY = var.llama_cloud_api_key
+      JOBS_BUCKET         = aws_s3_bucket.jobs.bucket # see jobs.tf
+      JOBS_TABLE          = aws_dynamodb_table.jobs.name
     }
   }
 
