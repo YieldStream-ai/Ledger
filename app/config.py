@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     # Minimum chars of extracted text before falling to next extractor
     min_text_threshold: int = 100
 
+    # Async job pipeline (S3 → SQS → worker Lambda, job state in DynamoDB)
+    aws_region: str = "us-west-2"
+    jobs_bucket: str = ""
+    jobs_table: str = ""
+    max_upload_mb: int = 20
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
